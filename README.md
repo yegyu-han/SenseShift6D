@@ -209,6 +209,18 @@ Set DATA.ROOT to the SenseShift6D/ directory in the config file
 
 Each model can be run with minimal changes to the original codebase. You may either manually copy the modified files or use our provided script to automatically patch the respective repositories.
 
+
+---
+
+## ⚒️ Tools
+Some useful codes.
+
++ [calc_ann_errs.py](/tools/calc_ann_errs.py): You can calculate GT annotation accuracy.
+
++ [main_custom_surface.py](/tools/main_custom_surface.py): PBR generator placing objects with random poses. Place it under *BlenderProc/examples/datasets/bop_challenge* in [BlenderProc](https://github.com/DLR-RM/BlenderProc)
+
++ [main_custom_upright.py](/tools/main_custom_upright.py): PBR generator placing objects with upright poses. 
+
 ---
 
 ## 📄 License
