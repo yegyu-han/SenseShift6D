@@ -64,11 +64,11 @@ SenseShift6D/
 ```
 ___
 
-🔧 Baseline Models
+## 🔧 Baseline Models
 SenseShift6D is designed to be easily integrated into various existing 6D object pose estimation frameworks. In our experiments, we evaluated the dataset using three popular baseline models:
 
-📌 GDRNPP
-Original Repository: GDRNPP_BOP2022
+### 📌 GDRNPP
+Original Repository: GDRNPP_BOP2022(https://github.com/shanice-l/gdrnpp_bop2022)
 
 Modifications:
 
@@ -78,19 +78,22 @@ Added lib/datasets/sense_shift6d_dataset.py
 
 Set DATASETS.DATA_ROOT to the SenseShift6D/ directory in the config files
 
-📌 ZebraPose
-Original Repository: ZebraPose
+### 📌 ZebraPose
+Original Repository: ZebraPose(https://github.com/suyz526/ZebraPose)
 
 Modifications:
 
-Added configs/sense_shift6d.yaml
+Added ZebraPose/zebrapose/configs/config_SS6D
+Added ZebraPose/zebrapose/tools_for_BOP/ss6d_io.py
+Added ZebraPose/zebrapose/ss6d_dataset_pytorch.py
+Added ZebraPose/zebrapose/SS6D_Augmentation.py
+Modified ZebraPose/zebrapose/tools_for_BOP/common_dataset_info.py
+Modified ZebraPose/zebrapose/config_parser.py
 
-Added data_loader/sense_shift6d.py
+Implemented ZebraPose/zebrapose/train_ss6d.py and ZebraPose/zebrapose/test_ss6d.py for SenseShift6D support
 
-Implemented train_ss6d.py and test_ss6d.py for SenseShift6D support
-
-📌 HiPose
-Original Repository: HiPose
+### 📌 HiPose
+Original Repository: HiPose(https://github.com/lyltc1/HiPose)
 
 Modifications:
 
