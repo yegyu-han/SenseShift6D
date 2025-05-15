@@ -84,10 +84,15 @@ Original Repository: ZebraPose(https://github.com/suyz526/ZebraPose)
 Modifications:
 
 Added ZebraPose/zebrapose/configs/config_SS6D
+
 Added ZebraPose/zebrapose/tools_for_BOP/ss6d_io.py
+
 Added ZebraPose/zebrapose/ss6d_dataset_pytorch.py
+
 Added ZebraPose/zebrapose/SS6D_Augmentation.py
+
 Modified ZebraPose/zebrapose/tools_for_BOP/common_dataset_info.py
+
 Modified ZebraPose/zebrapose/config_parser.py
 
 Implemented ZebraPose/zebrapose/train_ss6d.py and ZebraPose/zebrapose/test_ss6d.py for SenseShift6D support
