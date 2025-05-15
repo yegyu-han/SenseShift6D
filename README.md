@@ -72,8 +72,9 @@ We provide a synthetic training set rendered with physically-based rendering (PB
 ```
 SenseShift6D/
 └── train_pbr/
-        └── obj1/
-        └── ... /
+    └── obj1/
+    └── obj2/
+    └── obj3/
 ```
 
 This was generated using [BlenderProc](https://github.com/DLR-RM/BlenderProc) following the official BOP PBR rendering instructions.
@@ -93,10 +94,10 @@ Please ensure the following directory structure exists:
 
 ```
 SenseShift6D/
-├── models_GT_color/
-├── train_GT/
-├── train_pbr_GT/
-└── test_GT/
+├── models_GT_color/     # Colored meshes (.ply) with GT labels
+├── train_GT/            # GT labels for real training images
+├── train_pbr_GT/        # GT labels for synthetic training images
+└── test_GT/             # GT labels for test images
 ```
 
 ___
