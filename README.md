@@ -110,9 +110,13 @@ Original Repository: [GDRNPP_BOP2022](https://github.com/shanice-l/gdrnpp_bop202
 
 Modifications:
 
-Added core/configs/sense_shift6d/*.yaml
+- Added:
 
-Added lib/datasets/sense_shift6d_dataset.py
+  - core/configs/sense_shift6d/*.yaml
+
+  - lib/datasets/sense_shift6d_dataset.py
+
+- Modified:
 
 Set DATASETS.DATA_ROOT to the SenseShift6D/ directory in the config files
 
@@ -161,11 +165,47 @@ Original Repository: [HiPose](https://github.com/lyltc1/HiPose)
 
 Modifications:
 
-Added configs/ss6d.yaml and tools/train_ss6d.py
+- Added:
 
-Added dataset/sense_shift6d_dataset.py
+   - HiPose/hipose/config/
+     
+   - HiPose/hipose/outputs/checkpoints/
+     
+   - HiPose/hipose/tools_for_BOP/ss6d_io.py
+ 
+   - /ssd/dywoo/HiPose/hipose/train_ss6d.py
+ 
+- Modified:
+
+   - HiPose/hipose/bop_dataset_3d_convnext_backbone.py
+ 
+   - HiPose/hipose/config_parser.py
+ 
+   - HiPose/hipose/GDR_Net_Augmentation.py
+ 
+   - HiPose/hipose/tools_for_BOP/common_dataset_info.py
+
+
+### Training:
+
+```
+python train_ss6d.py --cfg config/train_senseshift6d_config_general.txt --obj_name spray
+```
+
+### Testing:
+
+```
+python test.py \
+  --cfg config/test_senseshift6d_config_B5.txt \
+  --obj_name spray \
+  --ckpt_file outputs/checkpoints/~ \
+  --eval_output outputs \
+  --new_solver_version True \
+  --region_bit 10
+```
 
 Set DATA.ROOT to the SenseShift6D/ directory in the config file
+
 
 Each model can be run with minimal changes to the original codebase. You may either manually copy the modified files or use our provided script to automatically patch the respective repositories.
 
