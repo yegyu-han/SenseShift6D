@@ -5,7 +5,7 @@ This repository provides the **SenseShift6D** dataset for evaluating 6D object p
 
 ## 📦 Dataset Download & Extraction
 ### Step 0: Download Dataset Zip Files
-Download the following files from our [Hugging Face page](https://huggingface.co/datasets/Yegyu/SenseShift6D:
+Download the following files from our [Hugging Face page](https://huggingface.co/datasets/Yegyu/SenseShift6D):
 - `ss6d_base.zip`
 - `scene_000000.zip`
 - `scene_000001.zip`
