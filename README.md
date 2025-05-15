@@ -65,6 +65,20 @@ SenseShift6D/
 ___
 
 ## ⚠️ Requirement
+
+### 🧪 Physical Based Rendering for Synthetic Training
+We provide a synthetic training set rendered with physically-based rendering (PBR):
+
+```
+SenseShift6D/
+└── train_pbr/
+        └── obj1/
+        └── ... /
+```
+
+This was generated using [BlenderProc](https://github.com/DLR-RM/BlenderProc) following the official BOP PBR rendering instructions.
+
+### 🧪 Ground Truth Mesh for ZebraPose & HiPose
 ZebraPose and HiPose require GT-colored meshes and pre-generated GT files for training and evaluation on custom datasets like SenseShift6D.
 
 To generate these files, you must first convert the CAD models into colored meshes and create ground-truth label files (e.g., train_GT, test_GT).
@@ -82,7 +96,7 @@ SenseShift6D/
 ├── models_GT_color/
 ├── train_GT/
 ├── train_pbr_GT/
-├── test_GT/
+└── test_GT/
 ```
 
 ___
