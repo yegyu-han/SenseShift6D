@@ -124,13 +124,13 @@ Modifications:
 
    - ZebraPose/zebrapose/config_parser.py
 
-# Training:
+### Training:
 
 ```
 python train_ss6d.py --cfg config/config_SS6D/exp_SS6D_train_general.txt --obj_name spray
 ```
 
-# Testing:
+### Testing:
 
 ```
 python test_ss6d_f.py \
