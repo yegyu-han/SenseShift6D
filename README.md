@@ -77,7 +77,8 @@ SenseShift6D/
     └── obj3/
 ```
 
-This was generated using [BlenderProc](https://github.com/DLR-RM/BlenderProc) following the official BOP PBR rendering instructions.
+### 🧪 Detection File for GDRNPP Testing
+
 
 ### 🧪 Ground Truth Mesh for ZebraPose & HiPose
 ZebraPose and HiPose require GT-colored meshes and pre-generated GT files for training and evaluation on custom datasets like SenseShift6D.
@@ -112,13 +113,34 @@ Modifications:
 
 - Added:
 
-  - core/configs/sense_shift6d/*.yaml
+  - configs/gdrn/ss6dSO/*.py
+    🔗 [Link](https://github.com/yegyu-han/SenseShift6D/tree/main/gdrnpp/configs)
 
-  - lib/datasets/sense_shift6d_dataset.py
+  - core/gdrn_modeling/datasets/ss6d_*.py
+    🔗 [Link](https://github.com/yegyu-han/SenseShift6D/tree/main/gdrnpp/dataloader)
+ 
+  - ref/ss6d.py
+    🔗 [Link](https://github.com/yegyu-han/SenseShift6D/blob/main/gdrnpp/ref/ss6d.py)
 
 - Modified:
+  
+  - core/gdrn_modeling/engine/gdrn_custom_evaluator.py
+    🔗 [Link](https://github.com/yegyu-han/SenseShift6D/blob/main/gdrnpp/engine/gdrn_custom_evaluator.py)
+ 
+  - core/gdrn_modeling/engine/engine.py
+    🔗 [Link](https://github.com/yegyu-han/SenseShift6D/blob/main/gdrnpp/engine/engine.py)
 
-Set DATASETS.DATA_ROOT to the SenseShift6D/ directory in the config files
+### Training:
+
+```
+./core/gdrn_modeling/train_gdrn.sh config/gdrn/ss6dSO/01_spray.py <gpu_ids> (other args)
+```
+
+### Testing:
+
+```
+./core/gdrn_modeling/test_gdrn.sh config/gdrn/ss6dSO/01_spray.py <gpu_ids> output/gdrn/SS6D/exp1/spray/model_final.pth
+```
 
 ### 📌 ZebraPose
 Original Repository: [ZebraPose](https://github.com/suyz526/ZebraPose)
