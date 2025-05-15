@@ -68,7 +68,7 @@ ___
 SenseShift6D is designed to be easily integrated into various existing 6D object pose estimation frameworks. In our experiments, we evaluated the dataset using three popular baseline models:
 
 ### 📌 GDRNPP
-Original Repository: GDRNPP_BOP2022(https://github.com/shanice-l/gdrnpp_bop2022)
+Original Repository: GDRNPP_BOP2022 (https://github.com/shanice-l/gdrnpp_bop2022)
 
 Modifications:
 
@@ -79,26 +79,47 @@ Added lib/datasets/sense_shift6d_dataset.py
 Set DATASETS.DATA_ROOT to the SenseShift6D/ directory in the config files
 
 ### 📌 ZebraPose
-Original Repository: ZebraPose(https://github.com/suyz526/ZebraPose)
+Original Repository: ZebraPose (https://github.com/suyz526/ZebraPose)
 
 Modifications:
 
-- Added ZebraPose/zebrapose/configs/config_SS6D
+- Added:
 
-- Added ZebraPose/zebrapose/tools_for_BOP/ss6d_io.py
+-- ZebraPose/zebrapose/configs/config_SS6D/
 
-- Added ZebraPose/zebrapose/ss6d_dataset_pytorch.py
+-- ZebraPose/zebrapose/outputs/checkpoints/
 
-- Added ZebraPose/zebrapose/SS6D_Augmentation.py
+-- ZebraPose/zebrapose/tools_for_BOP/ss6d_io.py
 
-- Modified ZebraPose/zebrapose/tools_for_BOP/common_dataset_info.py
+-- ZebraPose/zebrapose/ss6d_dataset_pytorch.py
 
-- Modified ZebraPose/zebrapose/config_parser.py
+-- ZebraPose/zebrapose/SS6D_Augmentation.py
 
-Implemented ZebraPose/zebrapose/train_ss6d.py and ZebraPose/zebrapose/test_ss6d.py for SenseShift6D support
+- Modified:
+
+-- ZebraPose/zebrapose/tools_for_BOP/common_dataset_info.py
+
+-- ZebraPose/zebrapose/config_parser.py
+
+# Training:
+
+```
+python train_ss6d.py --cfg config/config_SS6D/exp_SS6D_train_general.txt --obj_name spray
+```
+
+# Testing:
+
+```
+python test_ss6d_f.py \
+  --cfg config/config_SS6D/exp_SS6D_test_AE_B5.txt \
+  --obj_name spray \
+  --ckpt_file outputs/checkpoints/exp_SS6D_train_general/spray \
+  --ignore_bit 0 \
+  --eval_output_path outputs/report
+```
 
 ### 📌 HiPose
-Original Repository: HiPose(https://github.com/lyltc1/HiPose)
+Original Repository: HiPose (https://github.com/lyltc1/HiPose)
 
 Modifications:
 
