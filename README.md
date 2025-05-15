@@ -113,17 +113,17 @@ Modifications:
 
 - Added:
 
-  - `configs/gdrn/ss6dSO/*.py`
+  - configs/gdrn/ss6dSO/*.py
     
-  - `core/gdrn_modeling/datasets/ss6d_*.py`
+  - core/gdrn_modeling/datasets/ss6d_*.py
   
-  - `ref/ss6d.py`  
+  - ref/ss6d.py  
 
 - Modified:
   
-  - `core/gdrn_modeling/engine/gdrn_custom_evaluator.py`  
+  - core/gdrn_modeling/engine/gdrn_custom_evaluator.py  
  
-  - `core/gdrn_modeling/engine/engine.py`  
+  - core/gdrn_modeling/engine/engine.py  
 
 ### Training:
 
