@@ -64,11 +64,34 @@ SenseShift6D/
 ```
 ___
 
+## ⚠️ Requirement
+ZebraPose and HiPose require GT-colored meshes and pre-generated GT files for training and evaluation on custom datasets like SenseShift6D.
+
+To generate these files, you must first convert the CAD models into colored meshes and create ground-truth label files (e.g., train_GT, test_GT).
+
+You can follow the instructions from the [ZebraPose repository](https://github.com/suyz526/ZebraPose) under Binary_Code_GT_Generator/ to generate:
+
+- models_GT_color/: colored mesh models (e.g., .ply with per-vertex GT color)
+
+- train_GT/, test_GT/: ground truth binary code labels
+
+Please ensure the following directory structure exists:
+
+```
+SenseShift6D/
+├── models_GT_color/
+├── train_GT/
+├── train_pbr_GT/
+├── test_GT/
+```
+
+___
+
 ## 🔧 Baseline Models
 SenseShift6D is designed to be easily integrated into various existing 6D object pose estimation frameworks. In our experiments, we evaluated the dataset using three popular baseline models:
 
 ### 📌 GDRNPP
-Original Repository: GDRNPP_BOP2022 (https://github.com/shanice-l/gdrnpp_bop2022)
+Original Repository: [GDRNPP_BOP2022](https://github.com/shanice-l/gdrnpp_bop2022)
 
 Modifications:
 
@@ -79,27 +102,27 @@ Added lib/datasets/sense_shift6d_dataset.py
 Set DATASETS.DATA_ROOT to the SenseShift6D/ directory in the config files
 
 ### 📌 ZebraPose
-Original Repository: ZebraPose (https://github.com/suyz526/ZebraPose)
+Original Repository: [ZebraPose](https://github.com/suyz526/ZebraPose)
 
 Modifications:
 
 - Added:
 
--- ZebraPose/zebrapose/configs/config_SS6D/
+   - ZebraPose/zebrapose/configs/config_SS6D/
 
--- ZebraPose/zebrapose/outputs/checkpoints/
+   - ZebraPose/zebrapose/outputs/checkpoints/
 
--- ZebraPose/zebrapose/tools_for_BOP/ss6d_io.py
+   - ZebraPose/zebrapose/tools_for_BOP/ss6d_io.py
 
--- ZebraPose/zebrapose/ss6d_dataset_pytorch.py
+   - ZebraPose/zebrapose/ss6d_dataset_pytorch.py
 
--- ZebraPose/zebrapose/SS6D_Augmentation.py
+   - ZebraPose/zebrapose/SS6D_Augmentation.py
 
 - Modified:
 
--- ZebraPose/zebrapose/tools_for_BOP/common_dataset_info.py
+   - ZebraPose/zebrapose/tools_for_BOP/common_dataset_info.py
 
--- ZebraPose/zebrapose/config_parser.py
+   - ZebraPose/zebrapose/config_parser.py
 
 # Training:
 
@@ -119,7 +142,7 @@ python test_ss6d_f.py \
 ```
 
 ### 📌 HiPose
-Original Repository: HiPose (https://github.com/lyltc1/HiPose)
+Original Repository: [HiPose](https://github.com/lyltc1/HiPose)
 
 Modifications:
 
