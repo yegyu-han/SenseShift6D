@@ -113,22 +113,17 @@ Modifications:
 
 - Added:
 
-  - configs/gdrn/ss6dSO/*.py
-    🔗 [Link](https://github.com/yegyu-han/SenseShift6D/tree/main/gdrnpp/configs)
-
-  - core/gdrn_modeling/datasets/ss6d_*.py
-    🔗 [Link](https://github.com/yegyu-han/SenseShift6D/tree/main/gdrnpp/dataloader)
- 
-  - ref/ss6d.py
-    🔗 [Link](https://github.com/yegyu-han/SenseShift6D/blob/main/gdrnpp/ref/ss6d.py)
+  - `configs/gdrn/ss6dSO/*.py`
+    
+  - `core/gdrn_modeling/datasets/ss6d_*.py`
+  
+  - `ref/ss6d.py`  
 
 - Modified:
   
-  - core/gdrn_modeling/engine/gdrn_custom_evaluator.py
-    🔗 [Link](https://github.com/yegyu-han/SenseShift6D/blob/main/gdrnpp/engine/gdrn_custom_evaluator.py)
+  - `core/gdrn_modeling/engine/gdrn_custom_evaluator.py`  
  
-  - core/gdrn_modeling/engine/engine.py
-    🔗 [Link](https://github.com/yegyu-han/SenseShift6D/blob/main/gdrnpp/engine/engine.py)
+  - `core/gdrn_modeling/engine/engine.py`  
 
 ### Training:
 
