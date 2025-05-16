@@ -186,11 +186,13 @@ Modifications:
 
    - HiPose/hipose/config/
      
-   - HiPose/hipose/outputs/checkpoints/
-     
    - HiPose/hipose/tools_for_BOP/ss6d_io.py
  
-   - /ssd/dywoo/HiPose/hipose/train_ss6d.py
+   - HiPose/hipose/tools_for_BOP/pbr_io.py
+ 
+   - HiPose/hipose/train_ss6d.py
+ 
+   - HiPose/hipose/test_with_region_v3.py
  
 - Modified:
 
