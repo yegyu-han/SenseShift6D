@@ -67,7 +67,7 @@ ___
 ## ⚠️ Requirement
 
 ### 🧪 Physical Based Rendering for Synthetic Training
-We provide a synthetic training set rendered with physically-based rendering (PBR):
+We generated our synthetic PBR images using the [BlenderProc4BOP](https://github.com/DLR-RM/BlenderProc/blob/main/README_BlenderProc4BOP.md). The resulting folder layout is:
 
 ```
 SenseShift6D/
@@ -76,6 +76,7 @@ SenseShift6D/
     └── obj2/
     └── obj3/
 ```
+For a minimal example of how to invoke BOPToolkit on your own CAD models, see our helper script in tools/main_custom_upright.py and tools/main_custom_surface.py
 
 ### 🧪 Detection File for GDRNPP Testing
 To generate detection file for gdrnpp, run [this code](https://github.com/yegyu-han/SenseShift6D/blob/main/tools/scene_info_to_det_file.py)
