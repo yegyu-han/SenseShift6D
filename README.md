@@ -1,4 +1,4 @@
-# SenseShift6D
+![image](https://github.com/user-attachments/assets/46e75bbf-a3c4-41aa-adbc-2bf6907b0b3d)# SenseShift6D
 This repository provides the **SenseShift6D** dataset for evaluating 6D object pose estimation under varying sensor and lighting conditions.
 
 ---
@@ -78,7 +78,7 @@ SenseShift6D/
 ```
 
 ### 🧪 Detection File for GDRNPP Testing
-
+To generate detection file for gdrnpp, run [this code](https://github.com/yegyu-han/SenseShift6D/blob/main/tools/scene_info_to_det_file.py)
 
 ### 🧪 Ground Truth Mesh for ZebraPose & HiPose
 ZebraPose and HiPose require GT-colored meshes and pre-generated GT files for training and evaluation on custom datasets like SenseShift6D.
