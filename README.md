@@ -3,8 +3,9 @@ This repository provides the **SenseShift6D** dataset for evaluating 6D object p
 
 ---
 
+<!---
 ## 📦 Dataset Download & Extraction
-### Step 0: Download Dataset Zip Files
+### Step 0: Download Dataset Zip Files --
 Download the following files from our [Hugging Face repository 🤗](https://huggingface.co/datasets/Yegyu/SenseShift6D):
 - `ss6d_base.zip`
 - `scene_000000.zip`
@@ -29,11 +30,16 @@ After extraction, you will have a structured dataset under SenseShift6D/train/ a
 
 ## 📁 Final Directory Structure
 After extraction, your SenseShift6D/ directory should be structured as follows:
+-->
+## 📦 Dataset Download
+Download the SenseShfit6D from our [Hugging Face repository 🤗](https://huggingface.co/datasets/Yegyu/SenseShift6D)
+
+## 📁 SenseShift6D Directory Structure
 ```
 SenseShift6D/
 ├── train/
 │   └── Bx/                               # Brightness level (e.g., B5, B25, B50, B75, B100)
-│       └── 000000/                       # Scene number
+│       └── 000000/                      
 │           ├── rgb/
 │           │   └── EXGX/                 # Exposure-Gain setting (e.g., AE, E4G32)
 │           │       └── *.png             
@@ -64,7 +70,7 @@ SenseShift6D/
 ```
 ___
 
-## ⚠️ Requirement
+## ⚠️ Requirements for Baseline Models
 
 ### 🧪 Physical Based Rendering for Synthetic Training
 We generated our synthetic PBR images using the [BlenderProc4BOP](https://github.com/DLR-RM/BlenderProc/blob/main/README_BlenderProc4BOP.md). The resulting folder layout is:
