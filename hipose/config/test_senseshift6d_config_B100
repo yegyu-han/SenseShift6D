@@ -1,0 +1,67 @@
+#### training dataset
+bop_challange = False
+bop_path = /mnt
+dataset_name = SenseShift6D
+training_data_folder = train_pbr
+training_data_folder_2 = train
+val_folder = test
+test_folder = test
+second_dataset_ratio = 0.03125
+num_workers = 8
+train_obj_visible_theshold = 0.2 
+general = False
+brightness = B100
+
+####
+
+#### network settings
+BoundingBox_CropSize_image = 256
+
+BinaryCode_Loss_Type = BCE
+mask_binary_code_loss = True 
+
+use_histgramm_weighted_binary_loss = False
+fusion = False
+# choose from [False, convnext_base, convnext_large]
+convnext = convnext_large
+####
+
+#### check points
+load_checkpoint=False
+check_point_path=/ssd/dywoo/HiPose/hipose/6dof_pose_experiments/senseshift6d/checkpoints/
+tensorboard_path=/ssd/dywoo/HiPose/hipose/6dof_pose_experiments/senseshift6d/tensorboard_logs/runs/
+####
+
+
+#### optimizer
+optimizer_type = Adam
+learning_rate = 0.0001
+use_lr_scheduler = False
+batch_size = 32
+total_iteration = 38000
+
+binary_loss_weight = 3
+#### 
+
+
+#### augmentations
+#Detection_reaults = /ssd/dywoo/HiPose/hipose/detection_results/gdrnpp/gdrnppdet-pbr_ycbv-test_cfa8a0cb-5ebe-45d9-b9ba-1fd53633ca01.json 
+
+Detection_reaults = none
+
+padding_ratio = 1.5
+resize_method = crop_square_resize
+
+use_peper_salt= False
+use_motion_blur= False
+aug_depth = False
+aug_depth_megapose6d = False
+interpolate_depth = False
+shift_center = False
+shift_from_center=False
+
+#binary coding settings
+divide_number_each_itration = 2
+number_of_itration = 16
+
+detector = MASKRCNN
