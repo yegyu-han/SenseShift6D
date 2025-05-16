@@ -1,4 +1,4 @@
-![image](https://github.com/user-attachments/assets/46e75bbf-a3c4-41aa-adbc-2bf6907b0b3d)# SenseShift6D
+# SenseShift6D
 This repository provides the **SenseShift6D** dataset for evaluating 6D object pose estimation under varying sensor and lighting conditions.
 
 ---
