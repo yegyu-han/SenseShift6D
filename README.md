@@ -241,7 +241,7 @@ Each model can be run with minimal changes to the original codebase. You may eit
 ## ⚒️ Tools
 Some useful codes.
 
-+ [calc_ann_errs.py](/tools/calc_ann_errs.py): You can calculate GT annotation accuracy. Place it under *gdrnpp_bop2022/core/gdrn_modeling/tools/ss6d*.
++ [calc_ann_errs.py](/tools/calc_ann_errs.py): You can calculate GT annotation accuracy. Place it under *gdrnpp_bop2022/core/gdrn_modeling/tools/ss6d* in [GDRNPP_BOP2022](https://github.com/shanice-l/gdrnpp_bop2022).
 
 + [main_custom_surface.py](/tools/main_custom_surface.py): PBR generator placing objects with random poses. Place it under *BlenderProc/examples/datasets/bop_challenge* in [BlenderProc](https://github.com/DLR-RM/BlenderProc)
 
