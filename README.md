@@ -250,5 +250,13 @@ Some useful codes.
 ---
 
 ## 📄 License
-This dataset is released under the Creative Commons Attribution 4.0 International (CC BY 4.0) license.
-You are free to share and adapt the dataset with proper attribution.
+
+This repository is licensed under the **GNU General Public License v3.0 (GPL-3.0)** due to the inclusion of modified code from BlenderProc.
+
+- Parts of the code are adapted from:
+  - **BlenderProc** (GPL-3.0): rendering tools under `tools/`
+  - **GDRNPP** (Apache-2.0): modules under `gdrnpp/`
+  - **ZebraPose** (MIT): modules under `zebrapose/`
+  - **HiPose** (MIT): modules under `hipose/`
+
+All external components are used in accordance with their respective licenses. The full GPL license text can be found in the `LICENSE` file.
