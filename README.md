@@ -250,13 +250,18 @@ Some useful codes.
 ---
 
 ## 📄 License
+This repository is primarily licensed under the **MIT License**.
 
-This repository is licensed under the **GNU General Public License v3.0 (GPL-3.0)** due to the inclusion of modified code from BlenderProc.
+However, it includes two files adapted from [BlenderProc](https://github.com/DLR-RM/BlenderProc), which is licensed under the **GNU General Public License v3.0 (GPL-3.0)**.  
+As such, **only the following files are subject to GPL-3.0**:
 
-- Parts of the code are adapted from:
+- [`tools/main_custom_upright.py`](https://github.com/yegyu-han/SenseShift6D/blob/main/tools/main_custom_upright.py)
+- [`tools/main_custom_surface.py`](https://github.com/yegyu-han/SenseShift6D/blob/main/tools/main_custom_surface.py)
+
+### Components adapted from third-party sources:
   - **BlenderProc** (GPL-3.0): rendering tools under `tools/`
   - **GDRNPP** (Apache-2.0): modules under `gdrnpp/`
   - **ZebraPose** (MIT): modules under `zebrapose/`
   - **HiPose** (MIT): modules under `hipose/`
 
-All external components are used in accordance with their respective licenses. The full GPL license text can be found in the `LICENSE` file.
+All external components are used in accordance with their respective licenses. The full MIT license text can be found in the `LICENSE` file.
