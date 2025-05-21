@@ -1,6 +1,8 @@
 """
 This code is a modified version of the original implementation from:
 https://github.com/shanice-l/gdrnpp_bop2022
+
+Original code is licensed under the Apache License 2.0.
 """
 # -*- coding: utf-8 -*-
 """inference on dataset; save results; evaluate with custom evaluation
