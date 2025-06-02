@@ -245,7 +245,11 @@ Some useful codes.
 
 + [main_custom_surface.py](/tools/main_custom_surface.py): PBR generator placing objects with random poses. Place it under *BlenderProc/examples/datasets/bop_challenge* in [BlenderProc](https://github.com/DLR-RM/BlenderProc)
 
-+ [main_custom_upright.py](/tools/main_custom_upright.py): PBR generator placing objects with upright poses. 
++ [main_custom_upright.py](/tools/main_custom_upright.py): PBR generator placing objects with upright poses.
+
++ [custom_v1_vis_poses_full_gdrn.py](/tools/custom_v1_vis_poses_full_gdrn.py): Visualization of GDRNPP estimated pose (green) & Gt pose (red). 
+
++ [custom_v1_vis_poses_full_hipose_depth.py](/tools/custom_v1_vis_poses_full_hipose_depth.py): Visualization of HiPose estimated pose (green) & Gt pose (red). 
 
 ---
 
