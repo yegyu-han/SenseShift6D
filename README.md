@@ -247,9 +247,9 @@ Some useful codes.
 
 + [main_custom_upright.py](/tools/main_custom_upright.py): PBR generator placing objects with upright poses.
 
-+ [custom_v1_vis_poses_full_gdrn.py](/tools/custom_v1_vis_poses_full_gdrn.py): Visualization of GDRNPP estimated pose (green) & Gt pose (red). 
++ [custom_v1_vis_poses_full_gdrn.py](/tools/custom_v1_vis_poses_full_gdrn.py): Visualization of GDRNPP estimated pose (green) & Gt pose (red). Place it under *gdrnpp_bop2022/core/gdrn_modeling/tools/ss6d* in [GDRNPP_BOP2022](https://github.com/shanice-l/gdrnpp_bop2022).
 
-+ [custom_v1_vis_poses_full_hipose_depth.py](/tools/custom_v1_vis_poses_full_hipose_depth.py): Visualization of HiPose estimated pose (green) & Gt pose (red). 
++ [custom_v1_vis_poses_full_hipose_depth.py](/tools/custom_v1_vis_poses_full_hipose_depth.py): Visualization of HiPose estimated pose (green) & Gt pose (red). Place it under *gdrnpp_bop2022/core/gdrn_modeling/tools/ss6d* in [GDRNPP_BOP2022](https://github.com/shanice-l/gdrnpp_bop2022).
 
 ---
 
