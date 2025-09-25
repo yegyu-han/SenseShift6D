@@ -99,27 +99,19 @@ class GigaPoseTestSet(GigaPoseTrainSet):
         ], f"{test_setting} not supported!"
         self.load_detections(test_setting=test_setting)
         
-        # --- 📌 [추가] 데이터 소스 동기화 및 필터링 ---
-        # 1. cnos_dets(탐지 정보)에 있는 모든 image_key를 집합(set)으로 만듭니다.
-        #    이렇게 하면 조회가 매우 빨라집니다.
         valid_image_keys = set(self.cnos_dets.keys())
 
-        # 2. scene_dataset의 데이터 목록(frame_index)을 가져옵니다.
         scene_df = self.scene_dataset.frame_index
 
-        # 3. scene_dataset의 각 행에 대해 cnos_dets와 동일한 형식의 image_key를 생성합니다.
         scene_df['image_key'] = scene_df.apply(
             lambda row: f"{int(row['scene_id']):06d}_{int(row['view_id']):06d}", axis=1
         )
 
-        # 4. 탐지 정보가 존재하는 image_key를 가진 행만 남깁니다.
         filtered_df = scene_df[scene_df['image_key'].isin(valid_image_keys)].copy()
         
-        # 5. 필터링된 데이터프레임으로 scene_dataset의 목록을 교체합니다.
         self.scene_dataset.frame_index = filtered_df
         logger.info(f"Filtered scene_dataset: {len(scene_df)} -> {len(filtered_df)} images with detections.")
-        # -----------------------------------------------
-
+        
         if init_loc_path is not None:
             self.load_init_loc(init_loc_path, test_setting)
             logger.info("Loaded init loc for refinement!")
@@ -160,7 +152,6 @@ class GigaPoseTestSet(GigaPoseTrainSet):
             # group by instance_id
             image_locs_by_instance_id = {}
             for idx, loc in enumerate(image_locs):
-                # 'instance_id'가 있으면 사용하고, 없으면 이미지 내 순서(idx)를 ID로 사용
                 instance_id = loc.get("instance_id", idx)
                 if instance_id not in image_locs_by_instance_id:
                     image_locs_by_instance_id[instance_id] = []
@@ -352,12 +343,6 @@ class GigaPoseTestSet(GigaPoseTrainSet):
                 real_data, template_data, T_real2temp, T_temp2real
             )
 
-            # --- [디버깅 코드] keypoints 확인 ---
-            # print("[DEBUG] keypoints dictionary content:")
-            # for key, value in keypoints.items():
-            #     if isinstance(value, torch.Tensor):
-            #         print(f"  - {key}: shape={value.shape}, min={value.min():.2f}, max={value.max():.2f}, mean={value.mean():.2f}")
-            
             if "lmo" in self.dataset_name:
                 # workaround for indexing LMO: update object id to be in range(8)
                 new_labels = real_data.infos.label
@@ -452,15 +437,13 @@ class GigaPoseTestSet(GigaPoseTrainSet):
 
             data["TCO_init"] = torch.from_numpy(data["TCO_init"])
 
-            # --- GT Pose와 추가 정보를 여기에 추가 ---
             gt_datas = scene_obs.object_datas
             gt_poses_map = {int(d.label): d.TWO.matrix for d in gt_datas}
             
             gt_poses_list = []
             for obj_id in data["obj_id"]:
-                gt_poses_list.append(gt_poses_map.get(obj_id, np.eye(4))) # GT가 없으면 단위행렬
+                gt_poses_list.append(gt_poses_map.get(obj_id, np.eye(4)))
 
-            # infos DataFrame에 brightness, sensor 정보 추가
             infos_df = pd.DataFrame(
                 dict(
                     scene_id=data["scene_id"],
@@ -469,7 +452,6 @@ class GigaPoseTestSet(GigaPoseTrainSet):
                     batch_im_id=np.zeros_like(data["instance_id"]).astype(np.int32),
                     instance_id=data["instance_id"].astype(np.int32),
                     label=[f"obj_{obj_id:06d}" for obj_id in data["obj_id"]],
-                    # scene_obs에서 직접 정보를 가져와서 init_locs 개수만큼 반복
                     brightness=[scene_obs.infos.brightness] * len(data["obj_id"]),
                     rgb_sensor=[scene_obs.infos.rgb_sensor] * len(data["obj_id"]),
                     depth_sensor=[scene_obs.infos.depth_sensor] * len(data["obj_id"]),
@@ -481,8 +463,8 @@ class GigaPoseTestSet(GigaPoseTrainSet):
                 rgb=rgb.float(),
                 K=K.float(),
                 TCO_init=data["TCO_init"].float(),
-                gt_poses=torch.from_numpy(np.stack(gt_poses_list)).float(), # GT Pose 추가
-                infos=infos_df, # 확장된 infos 사용
+                gt_poses=torch.from_numpy(np.stack(gt_poses_list)).float(),
+                infos=infos_df,
             )
         return out_data
 
@@ -540,15 +522,13 @@ class GigaPoseTestSet(GigaPoseTrainSet):
 
             data["TCO_init"] = torch.from_numpy(data["TCO_init"])
 
-            # --- GT Pose와 추가 정보를 여기에 추가 ---
             gt_datas = scene_obs.object_datas
             gt_poses_map = {int(d.label): d.TWO.matrix for d in gt_datas}
             
             gt_poses_list = []
             for obj_id in data["obj_id"]:
-                gt_poses_list.append(gt_poses_map.get(obj_id, np.eye(4))) # GT가 없으면 단위행렬
+                gt_poses_list.append(gt_poses_map.get(obj_id, np.eye(4)))
 
-            # infos DataFrame에 brightness, sensor 정보 추가
             infos_df = pd.DataFrame(
                 dict(
                     scene_id=data["scene_id"],
@@ -557,7 +537,6 @@ class GigaPoseTestSet(GigaPoseTrainSet):
                     batch_im_id=np.zeros_like(data["instance_id"]).astype(np.int32),
                     instance_id=data["instance_id"].astype(np.int32),
                     label=[f"obj_{obj_id:06d}" for obj_id in data["obj_id"]],
-                    # scene_obs에서 직접 정보를 가져와서 init_locs 개수만큼 반복
                     brightness=[scene_obs.infos.brightness] * len(data["obj_id"]),
                     rgb_sensor=[scene_obs.infos.rgb_sensor] * len(data["obj_id"]),
                     depth_sensor=[scene_obs.infos.depth_sensor] * len(data["obj_id"]),
@@ -570,8 +549,8 @@ class GigaPoseTestSet(GigaPoseTrainSet):
                 depth=depth.float(),
                 K=K.float(),
                 TCO_init=data["TCO_init"].float(),
-                gt_poses=torch.from_numpy(np.stack(gt_poses_list)).float(), # GT Pose 추가
-                infos=infos_df, # 확장된 infos 사용
+                gt_poses=torch.from_numpy(np.stack(gt_poses_list)).float(),
+                infos=infos_df,
             )
         return out_data
 
