@@ -6,7 +6,7 @@ from hydra.utils import instantiate
 from torch.utils.data import DataLoader
 from megapose.datasets.bop_object_datasets import BOPObjectDataset
 from megapose.utils.logging import get_logger
-from src.custom_megapose.refiner_utils import find_init_pose_path
+from src.custom_megapose.refiner_utils_v2 import find_init_pose_path
 from src.models.refiner_ss6d_v2 import Refiner
 import time
 from src.utils.gpu import assign_gpu, terminate_processes
