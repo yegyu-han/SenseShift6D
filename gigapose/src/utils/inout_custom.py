@@ -425,7 +425,6 @@ def load_test_list_and_cnos_detections_mix(
 
     all_detections_list = []
     
-    # 1. 모든 객체 폴더를 순회하며 탐지(est) 결과 취합
     for obj_dir in os.listdir(bbox_base_path):
         json_path = bbox_base_path / obj_dir / brightness / f"depth_{depth_sensor}" / f"merged_ism_topscore_{rgb_sensor}.json"
         
@@ -439,38 +438,33 @@ def load_test_list_and_cnos_detections_mix(
                 det['scene_id'] = current_scene_id
             all_detections_list.extend(detections_in_file)
 
-    # 2. 취합된 탐지 결과를 cnos_dets 포맷으로 변환
     all_dets_per_image = {}
-    for det_raw in all_detections_list: # 📌 [수정] 단일 탐지 결과(det_raw)를 직접 처리
+    for det_raw in all_detections_list:
         scene_id = det_raw['scene_id']
         im_id = det_raw['image_id']
         
-        # GT bbox 매칭 및 저장용 키 생성
         gt_key = f"{scene_id}/{im_id}"
         image_key = f"{scene_id:06d}_{im_id:06d}"
         
-        # GT 정보가 없으면 해당 탐지는 건너뜀
         if gt_key not in gt_bboxes_raw:
             continue
         
         if image_key not in all_dets_per_image:
             all_dets_per_image[image_key] = []
         
-        # est와 GT의 객체 순서가 같다고 가정하고, 첫 번째 객체 정보 사용
         gt_data = gt_bboxes_raw[gt_key][0]
 
         processed_det = {
             'scene_id': scene_id,
             'image_id': im_id,
-            'score': det_raw['score'],            # score는 탐지(est) 결과 사용
-            'bbox': tuple(gt_data['bbox_est']),  # bbox는 GT 사용
-            'category_id': det_raw['category_id'], # category_id는 est 결과 사용
-            'time': det_raw.get('time', 0.0)      # time은 탐지(est) 결과 사용
+            'score': det_raw['score'],
+            'bbox': tuple(gt_data['bbox_est']),
+            'category_id': det_raw['category_id'],
+            'time': det_raw.get('time', 0.0)
         }
         
-        # GT 마스크 이미지 로드
         scene_folder_path = root_dir / dataset_name / "test" / brightness / f"{scene_id:06d}"
-        mask_counter = 0 # 한 이미지에 객체가 하나라고 가정
+        mask_counter = 0
         mask_path = scene_folder_path / "mask_visib" / f"{im_id:06d}_{mask_counter:06d}.png"
 
         if os.path.exists(mask_path):
@@ -494,7 +488,6 @@ def load_test_list_and_cnos_detections(
     """
     Ground Truth bbox와 mask를 불러와 cnos_dets 포맷으로 변환하는 함수.
     """
-    # 1. GT BBox 파일 불러오기
     bbox_path = root_dir / dataset_name / "test" / "test_bboxes" / "scene_gt_info_bboxes.json"
     if not bbox_path.exists():
         raise FileNotFoundError(f"GT file not found at: {bbox_path}")
@@ -502,26 +495,22 @@ def load_test_list_and_cnos_detections(
     with open(bbox_path) as f:
         all_detections_raw = json.load(f)
 
-    # 2. 데이터를 cnos_dets 포맷으로 변환
     all_dets_per_image = {}
-    # --- 📌 [수정] for 루프 시작 ---
     for key, dets_raw in all_detections_raw.items():
         scene_id, im_id = key.split('/')
         new_key = f"{int(scene_id):06d}_{int(im_id):06d}"
         
         processed_dets = []
-        # 한 이미지에 여러 객체가 있을 수 있으므로 dets_raw를 순회
         det_raw = dets_raw[0]
         processed_det = {
             'scene_id': int(scene_id),
             'image_id': int(im_id),
-            'score': det_raw.get('score', 1.0), # GT이므로 score는 1.0으로 설정
-            'bbox': tuple(det_raw['bbox_est']), # GT bbox 키 (예: bbox_visib)
+            'score': det_raw.get('score', 1.0),
+            'bbox': tuple(det_raw['bbox_est']),
             'category_id': det_raw['obj_id'],
             'time': det_raw.get('time', 0.0)
         }
 
-        # --- 📌 [수정] 올바른 mask_path 경로 및 RLE 변환 ---
         scene_folder_path = root_dir / dataset_name / "test" / brightness / f"{int(scene_id):06d}"
         mask_path = scene_folder_path / "mask_visib" / f"{int(im_id):06d}_000000.png"
 
@@ -534,10 +523,8 @@ def load_test_list_and_cnos_detections(
         
         processed_dets.append(processed_det)
         
-        # 처리된 결과를 딕셔너리에 저장
         all_dets_per_image[new_key] = processed_dets
-    # --- 📌 [수정] for 루프 종료 ---
-
+    
     return (
         generate_test_list(all_dets_per_image),
         all_dets_per_image,
@@ -563,16 +550,12 @@ def load_test_list_and_cnos_detections_est(
         with open(json_path) as f:
             detections_in_file = json.load(f)
             
-            # --- 📌 [수정] 올바른 scene_id 할당 ---
-            # "obj_2"에서 숫자 2를 추출하여 scene_id로 사용
             current_scene_id = int(obj_dir.split('_')[-1])
             for det in detections_in_file:
                 det['scene_id'] = current_scene_id
-            # ------------------------------------
-
+            
             all_detections_list.extend(detections_in_file)
 
-    # (이하 포맷 변환 로직은 동일)
     all_dets_per_image = {}
     for det_raw in all_detections_list:
         scene_id = det_raw['scene_id']
@@ -603,8 +586,6 @@ def load_test_list_and_cnos_detections_est(
     )
 
 def binary_mask_to_rle(mask):
-    """0과 1로 구성된 이진 마스크를 RLE 형식으로 변환"""
-    # pycocotools는 Fortran-style 메모리 레이아웃을 기대함
     mask_rle = mask_utils.encode(np.asfortranarray(mask.astype(np.uint8)))
     return mask_rle
 
