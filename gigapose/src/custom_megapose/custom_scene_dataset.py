@@ -31,7 +31,6 @@ def load_scene_ds_obs(
     rgb = cv2.imread(sample['rgb_path'])
     rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
 
-    # Image.open은 경로가 Path 객체일 때 더 안정적일 수 있습니다.
     depth = np.asarray(Image.open(Path(sample['depth_path'])))
     depth = depth.astype(np.float32)
     depth /= depth_scale
@@ -50,10 +49,8 @@ def load_scene_ds_obs(
     infos = ObservationInfos(scene_id=sample['scene_id'], view_id=sample['view_id'], brightness=sample['brightness'], rgb_sensor=sample['rgb_sensor'], depth_sensor=sample['depth_sensor'])
 
     object_datas = []
-    # binary_masks 딕셔너리를 미리 초기화
     binary_masks_dict = {}
 
-    # GT 데이터가 있는지 확인
     if 'gt' in sample and sample['gt'] is not None:
         for idx_obj, data in enumerate(sample['gt']):
             data_info = sample['gt_info'][idx_obj]
@@ -75,13 +72,10 @@ def load_scene_ds_obs(
             object_data = ObjectData.from_json(data)
             object_datas.append(object_data)
 
-            # --- 마스크 처리 로직을 루프 안으로 이동 ---
-            # 현재 객체(idx_obj)에 해당하는 마스크 경로를 가져옵니다.
             mask_path = sample['mask_visib_paths'][idx_obj]
             mask_image = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
             binary_mask = (mask_image > 0)
             
-            # object_data의 idx_obj와 동일한 키를 사용합니다.
             binary_masks_dict[str(unique_id)] = binary_mask
             
     return SceneObservation(
@@ -125,7 +119,6 @@ class CustomSceneDataset(SceneDataset):
     def load_frame_index(self) -> pd.DataFrame:
         target_dir = self.target_dir
         
-        # 모든 샘플 정보를 담을 단일 리스트
         all_samples = []
 
         if(os.path.exists(target_dir)):
@@ -156,7 +149,6 @@ class CustomSceneDataset(SceneDataset):
                             rgb_base_path = os.path.join(current_dir, "rgb")
                             depth_base_path = os.path.join(current_dir, "depth")
                             
-                            # 모든 RGB/Depth 센서 조합에 대해 루프
                             for rgb_sensor_dir in os.listdir(rgb_base_path):
                                 if rgb_sensor_dir != self.rgb_sensor:
                                     continue
@@ -166,7 +158,6 @@ class CustomSceneDataset(SceneDataset):
                                     rgb_fn = os.path.join(rgb_base_path, rgb_sensor_dir, f"{img_id:06d}.png")
                                     depth_fn = os.path.join(depth_base_path, depth_sensor_dir, f"{img_id:06d}.png")
 
-                                    # 샘플 하나의 정보를 담는 딕셔너리 생성
                                     sample_info = {
                                         'rgb_path': rgb_fn,
                                         'depth_path': depth_fn,
@@ -178,12 +169,10 @@ class CustomSceneDataset(SceneDataset):
                                         'depth_sensor': depth_sensor_dir,
                                     }
 
-                                    # GT 정보가 있을 경우 추가
                                     if scene_gts and scene_gt_infos:
                                         sample_info['gt'] = scene_gts[img_id]
                                         sample_info['gt_info'] = scene_gt_infos[img_id]
 
-                                        # 마스크 정보 추가
                                         mask_visib_fns = []
                                         for counter, gt_obj in enumerate(scene_gts[img_id]):
                                             mask_visib_fn = os.path.join(current_dir, "mask_visib", f"{img_id:06d}_{counter:06d}.png")
@@ -192,11 +181,9 @@ class CustomSceneDataset(SceneDataset):
 
                                     all_samples.append(sample_info)
         
-        # 리스트가 비어있으면 빈 DataFrame 반환
         if not all_samples:
             return pd.DataFrame()
 
-        # 딕셔너리 리스트를 하나의 DataFrame으로 변환하여 반환
         frame_index = pd.DataFrame(all_samples)
         return frame_index
 
