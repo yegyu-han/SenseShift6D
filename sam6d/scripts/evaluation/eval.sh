@@ -2,7 +2,7 @@
 # Usage: ./eval.sh [gt|top1|default]
 
 if [ -z "$1" ]; then
-  echo "[ERROR] Enter a option: $0 [gt|top1|default|editedAUC]"
+  echo "[ERROR] Enter a option: $0 [gt|top1|default]"
   exit 1
 fi
 
@@ -38,8 +38,6 @@ for brightness in "${brightnesses[@]}"; do
             python ./calculate_ADD_ss6d_top1.py --object_id $obj_id --b_level $brightness 
         elif [ "$1" = "default" ]; then
             python ./calculate_ADD_ss6d.py --object_id $obj_id --b_level $brightness 
-        elif [ "$1" = "editedAUC" ]; then
-            python ./calculate_ADD_ss6d_gt_editedAUC.py --object_id $obj_id --b_level $brightness 
         fi
     done
     
