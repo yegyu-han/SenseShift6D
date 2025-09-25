@@ -1,6 +1,3 @@
-"""
-Place this script under gdrnpp_bop2022/core/gdrn_modeling/tools/ss6d
-"""
 import mmcv
 import os.path as osp
 import numpy as np
@@ -14,9 +11,8 @@ import cv2
 import matplotlib.pyplot as plt
 import os
 
-cur_dir = osp.abspath(osp.dirname(__file__))
-PROJ_ROOT = osp.join(cur_dir, "../../../..")
-sys.path.insert(0, PROJ_ROOT)
+cur_dir = osp.dirname(osp.abspath(__file__))
+sys.path.insert(0, osp.join(cur_dir, "../../../../"))
 
 from lib.vis_utils.colormap import colormap
 from lib.utils.mask_utils import mask2bbox_xyxy, cocosegm2mask, get_edge
@@ -31,7 +27,7 @@ glob_diff_list = []
 glob_diff_abs_list = []
 
 # Object info
-id2obj = {1: "spray", 2:"pringles", 3:"tincase"}
+id2obj = {1: "spray", 2:"pringles", 3:"tincase", 4:"sandwich", 5:"mouse"}
 objects = list(id2obj.values())
 
 # Base settings
@@ -43,12 +39,14 @@ depth_scale = 0.001  # mm to meter
 model_dir = "datasets/BOP_DATASETS/SenseShift6D/models/"
 model_paths = [osp.join(model_dir, f"obj_{obj_id:06d}.ply") for obj_id in id2obj]
 
-for scene_num in range(3): # object id. 0: spray, 1: pringles, 2: tincase
+for scene_num in range(5): # object id. 0: spray, 1: pringles, 2: tincase
     obj_name = id2obj[scene_num +1]
 
     """
         TRAIN 
     """
+
+    depth_dir = f"datasets/BOP_DATASETS/SenseShift6D/train/B50/{scene_num:06}/depth"
 
     # Renderer initialization
     ren = EGLRenderer(
@@ -60,7 +58,7 @@ for scene_num in range(3): # object id. 0: spray, 1: pringles, 2: tincase
     )
 
     # Dataset registration and loading
-    dataset_name = f"ss6d_{obj_name}_lv3ae_tr"
+    dataset_name = f"ss6d_{obj_name}_lv3aeg0_tr"
     register_datasets([dataset_name])
     meta = MetadataCatalog.get(dataset_name)
     dset_dicts = DatasetCatalog.get(dataset_name)
@@ -68,7 +66,7 @@ for scene_num in range(3): # object id. 0: spray, 1: pringles, 2: tincase
     # tensor for rendering
     import torch
     tensor_kwargs = {"device": torch.device("cuda"), "dtype": torch.float32}
-    # seg_tensor = torch.empty((height, width, 4), **tensor_kwargs).detach()
+    seg_tensor = torch.empty((height, width, 4), **tensor_kwargs).detach()
     pc_cam_tensor = torch.empty((height, width, 4), **tensor_kwargs).detach()
 
     # Iterate through all images
@@ -89,12 +87,11 @@ for scene_num in range(3): # object id. 0: spray, 1: pringles, 2: tincase
         gt_poses = [np.hstack([R, t.reshape(3, 1)]) for R, t in zip(Rs, transes)]
 
         # Rendered depth map
-        # ren.render(gt_labels, gt_poses, K=K, seg_tensor=seg_tensor, pc_cam_tensor=pc_cam_tensor)
-        ren.render(gt_labels, gt_poses, K=K, pc_cam_tensor=pc_cam_tensor)
+        ren.render(gt_labels, gt_poses, K=K, seg_tensor=seg_tensor, pc_cam_tensor=pc_cam_tensor)
         depth_render = pc_cam_tensor[:, :, 2].detach().cpu().numpy()
 
         # Capture depth map
-        depth_path = osp.join(PROJ_ROOT, d["depth_file"])
+        depth_path = osp.join(depth_dir, "1", f"{im_id:06d}.png")
         if not osp.exists(depth_path):
             print(f"[WARNING] Missing depth image: {depth_path}")
             continue
@@ -123,6 +120,8 @@ for scene_num in range(3): # object id. 0: spray, 1: pringles, 2: tincase
         Test
     """
 
+    depth_dir = f"datasets/BOP_DATASETS/SenseShift6D/test/B50/{scene_num:06}/depth"
+
     ren = EGLRenderer(
         model_paths,
         vertex_scale=depth_scale,
@@ -138,8 +137,11 @@ for scene_num in range(3): # object id. 0: spray, 1: pringles, 2: tincase
 
     import torch
     tensor_kwargs = {"device": torch.device("cuda"), "dtype": torch.float32}
-    # seg_tensor = torch.empty((height, width, 4), **tensor_kwargs).detach()
+    seg_tensor = torch.empty((height, width, 4), **tensor_kwargs).detach()
     pc_cam_tensor = torch.empty((height, width, 4), **tensor_kwargs).detach()
+
+    output_dir = f"depth_debug_outputs/obj_{scene_num}"
+    os.makedirs(output_dir, exist_ok=True)
 
     for d in tqdm(dset_dicts):
         K = d["cam"]
@@ -156,11 +158,10 @@ for scene_num in range(3): # object id. 0: spray, 1: pringles, 2: tincase
         gt_labels = [objects.index(name) for name in obj_names]
         gt_poses = [np.hstack([R, t.reshape(3, 1)]) for R, t in zip(Rs, transes)]
 
-        # ren.render(gt_labels, gt_poses, K=K, seg_tensor=seg_tensor, pc_cam_tensor=pc_cam_tensor)
-        ren.render(gt_labels, gt_poses, K=K, pc_cam_tensor=pc_cam_tensor)
+        ren.render(gt_labels, gt_poses, K=K, seg_tensor=seg_tensor, pc_cam_tensor=pc_cam_tensor)
         depth_render = pc_cam_tensor[:, :, 2].detach().cpu().numpy()
 
-        depth_path = osp.join(PROJ_ROOT, d["depth_file"])
+        depth_path = osp.join(depth_dir, "1", f"{im_id:06d}.png")
         if not osp.exists(depth_path):
             print(f"[WARNING] Missing depth image: {depth_path}")
             continue

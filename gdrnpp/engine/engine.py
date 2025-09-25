@@ -1,9 +1,3 @@
-"""
-This code is a modified version of the original implementation from:
-https://github.com/shanice-l/gdrnpp_bop2022
-
-Original code is licensed under the Apache License 2.0.
-"""
 import logging
 import os
 import os.path as osp
@@ -155,15 +149,37 @@ class GDRN_Lite(LightningLite):
                 train_objs=train_obj_names,
                 amp_test=cfg.TEST.AMP_TEST,
             )
+    
+    def compute_auc_add(self, errors, max_threshold=0.1, step=0.001):
+        """
+        Compute AUC for ADD(-S) error up to max_threshold.
+
+        Args:
+            errors (List[float]): list of ADD or ADI errors (in meter).
+            max_threshold (float): max error threshold to consider.
+            step (float): interval to sample thresholds.
+
+        Returns:
+            auc (float): area under accuracy curve scaled to [0,100]
+        """
+        errors = np.array(errors)
+        thresholds = np.arange(0, max_threshold + step, step)
+        accuracies = [(errors < t).astype(np.float32).mean() for t in thresholds]
+        auc = np.trapz(accuracies, thresholds) / max_threshold
+        return auc * 100  # return percentage
 
     def do_test(self, cfg, model, epoch=None, iteration=None):
         results = OrderedDict()
         lv_to_correct_base_names = defaultdict(list)  
-        lv_to_min_errors = defaultdict(dict)          
-        lv_to_add_values = defaultdict(list)          
+        lv_to_min_errors = defaultdict(dict)         
+        lv_to_max_bop = defaultdict(dict) 
+        lv_to_add_values = defaultdict(list)
+        lv_to_bop_values = defaultdict(list)      
         lv_to_table = defaultdict(lambda: defaultdict(dict))
 
+        # 모든 evaluator 기록
         evaluator_results = []
+
 
         model_name = osp.basename(cfg.MODEL.WEIGHTS).split(".")[0]
         for dataset_name in cfg.DATASETS.TEST:
@@ -171,6 +187,7 @@ class GDRN_Lite(LightningLite):
             if not match:
                 print(f"[do_test] Invalid dataset_name format: {dataset_name}")
                 continue
+            obj_name = match.group(1)
             lv = match.group(2)
             if epoch is not None and iteration is not None:
                 eval_out_dir = osp.join(cfg.OUTPUT_DIR, f"inference_epoch_{epoch}_iter_{iteration}", dataset_name)
@@ -184,10 +201,32 @@ class GDRN_Lite(LightningLite):
             results_i = gdrn_inference_on_dataset(cfg, model, data_loader, evaluator, amp_test=cfg.TEST.AMP_TEST)
             results[dataset_name] = results_i
             evaluator_results.append((dataset_name, lv, evaluator))
+        
 
         for dataset_name, lv, evaluator in evaluator_results:
             errors = evaluator.errors
             per_image_errors = evaluator.per_image_errors
+            """
+            if "ae" in dataset_name.lower():
+                for base_name, testset_errors in per_image_errors.items():
+                    if dataset_name not in testset_errors:
+                        continue
+                    ad = testset_errors[dataset_name]["ad"]
+                    re_val = testset_errors[dataset_name]["re"]
+                    te_val = testset_errors[dataset_name]["te"]
+                    norm_add = testset_errors[dataset_name]["norm_add"]
+                    bop = testset_errors[dataset_name]["bop"]
+
+                    if base_name not in lv_to_min_errors[lv]:
+                        lv_to_min_errors[lv][base_name] = {
+                            "min_add": ad,
+                            "testset": dataset_name,
+                            "bop": bop,
+                            "re": re_val,
+                            "te": te_val,
+                            "norm_add": norm_add,
+                        }
+            """        
 
             if "ae" not in dataset_name.lower():
                 # part 1. matched images
@@ -195,37 +234,60 @@ class GDRN_Lite(LightningLite):
                     for fname in errors[obj_name]["ans"]:
                         lv_to_correct_base_names[lv].append(f"{lv}/{fname}")
 
+                # part 2. min error
                 for base_name, testset_errors in per_image_errors.items():
                     if dataset_name not in testset_errors:
                         continue
                     ad = testset_errors[dataset_name]["ad"]
                     re_val = testset_errors[dataset_name]["re"]
                     te_val = testset_errors[dataset_name]["te"]
+                    norm_add = testset_errors[dataset_name]["norm_add"]
+                    bop = testset_errors[dataset_name]["bop"]
 
                     if base_name not in lv_to_min_errors[lv] or ad < lv_to_min_errors[lv][base_name]["min_add"]:
                         lv_to_min_errors[lv][base_name] = {
                             "min_add": ad,
                             "testset": dataset_name,
+                            "bop": bop,
                             "re": re_val,
-                            "te": te_val
+                            "te": te_val,
+                            "norm_add": norm_add,
                         }
 
+                    if base_name not in lv_to_max_bop[lv] or bop > lv_to_max_bop[lv][base_name]["max_bop"]:
+                        lv_to_max_bop[lv][base_name] = {
+                            "max_bop": bop,
+                            "testset": dataset_name,
+                            "add": ad,
+                            "re": re_val,
+                            "te": te_val,
+                            "norm_add": norm_add,
+                        }
+
+            # part 3. metric table (AE도 포함)
             for row in evaluator.big_tab:
                 metric = row[0]
                 value = row[-1]  # Avg
                 lv_to_table[lv][metric][dataset_name] = value
-
+            
         for lv, base_dict in lv_to_min_errors.items():
             for base_name, data in base_dict.items():
                 lv_to_add_values[lv].append(data["min_add"])
 
-        excel_path = osp.join(cfg.OUTPUT_DIR, "lv_eval_excel", "summary_by_lv.xlsx")
+        for lv, base_dict in lv_to_max_bop.items():
+            for base_name, data in base_dict.items():
+                lv_to_bop_values[lv].append(data["max_bop"])
+
+
+        # --- Excel 저장 ---
+        excel_path = osp.join(cfg.OUTPUT_DIR, "eval_excel", f"{obj_name}.xlsx")
         os.makedirs(osp.dirname(excel_path), exist_ok=True)
         wb = openpyxl.Workbook()
         ws_summary = wb.active
         ws_summary.title = "all_lv_summary"
 
         cur_row = 1
+
         for lv, metric_dict in sorted(lv_to_table.items()):
             ws_summary.cell(row=cur_row, column=1, value=f"## {lv}")
             ws_summary.cell(row=cur_row, column=1).font = Font(bold=True)
@@ -251,17 +313,35 @@ class GDRN_Lite(LightningLite):
                     except ValueError:
                         ws_summary.cell(row=cur_row, column=col_idx, value=val_str)
                 cur_row += 1
+
             cur_row += 2
 
+        # --- 전체 평균 AUC 계산 ---
+        all_auc_vals = []
+
+        for lv in lv_to_min_errors:
+            for base_name, data in lv_to_min_errors[lv].items():
+                norm_add_val = data.get("norm_add", None)
+                if norm_add_val is not None:
+                    auc_val = self.compute_auc_add([norm_add_val])
+                    all_auc_vals.append(auc_val)
+
+        overall_avg_auc = sum(all_auc_vals) / len(all_auc_vals) if all_auc_vals else None
+
+        # --- all_lv_summary 시트 마지막에 덧붙이기 ---
+        ws_summary.append([])
+        ws_summary.append(["oracle_auc", round(overall_avg_auc, 3) if overall_avg_auc is not None else None])
+
+
         for lv in sorted(lv_to_min_errors.keys()):
-            # add_results
+            # add_results 시트
             sheet_add = wb.create_sheet(title=f"add_results_{lv}")
-            with open(osp.join(save_dir, f"add_results_{lv}.json"), "r") as f:
-                add_data = json.load(f)
-            sheet_add.append(["avg_add", add_data["avg_add"]])
+            image_results = lv_to_min_errors[lv]
+            avg_add = sum(d["min_add"] for d in image_results.values()) / len(image_results) if image_results else None
+            sheet_add.append(["avg_add", round(avg_add, 4) if avg_add is not None else None])
             sheet_add.append([])
             sheet_add.append(["image_name", "min_add", "testset", "re", "te"])
-            for image_name, data in add_data["per_image"].items():
+            for image_name, data in image_results.items():
                 sheet_add.append([
                     image_name,
                     data["min_add"],
@@ -270,15 +350,49 @@ class GDRN_Lite(LightningLite):
                     data["te"]
                 ])
 
-            # match_imgs
+            # bop_results 시트
+            sheet_bop = wb.create_sheet(title=f"bop_results_{lv}")
+            image_results = lv_to_max_bop[lv]
+            avg_bop = sum(d["max_bop"] for d in image_results.values()) / len(image_results) if image_results else None
+            sheet_bop.append(["avg_bop", round(avg_bop, 4) if avg_bop is not None else None])
+            sheet_bop.append([])
+            sheet_bop.append(["image_name", "min_bop", "testset", "add", "re", "te"])
+            for image_name, data in image_results.items():
+                sheet_bop.append([
+                    image_name,
+                    data["max_bop"],
+                    data["testset"],
+                    data["add"],
+                    data["re"],
+                    data["te"]
+                ])  
+
+            # match_imgs 시트 (add_5 기준)
             sheet_match = wb.create_sheet(title=f"match_imgs_{lv}")
-            with open(osp.join(save_dir, f"match_imgs_{lv}.json"), "r") as f:
-                match_data = json.load(f)
-            sheet_match.append(["num_correct", match_data["num_correct"]])
+            matched_base_names = sorted(set(osp.basename(p) for p in lv_to_correct_base_names[lv]))
+            sheet_match.append(["num_correct", len(matched_base_names)])
             sheet_match.append([])
             sheet_match.append(["matched_images"])
-            for name in match_data["matched_images"]:
+            for name in matched_base_names:
                 sheet_match.append([name])
+
+            # 이미지별 testset 간 add 값 시트
+            base_names = sorted(lv_to_min_errors[lv].keys())
+            all_testsets = sorted({
+                data["testset"] for data in lv_to_min_errors[lv].values()
+            })
+
+            sheet_add_matrix = wb.create_sheet(title=f"add_per_image_{lv}")
+            sheet_add_matrix.append(["image_name"] + all_testsets)
+
+            for base_name in base_names:
+                row = [base_name]
+                for testset in all_testsets:
+                    if lv_to_min_errors[lv][base_name]["testset"] == testset:
+                        row.append(lv_to_min_errors[lv][base_name]["min_add"])
+                    else:
+                        row.append("")
+                sheet_add_matrix.append(row)
 
         wb.save(excel_path)
 

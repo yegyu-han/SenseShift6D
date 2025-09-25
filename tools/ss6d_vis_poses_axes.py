@@ -1,3 +1,7 @@
+"""
+Place this script under gdrnpp_bop2022/core/gdrn_modeling/tools/ss6d
+"""
+
 import mmcv
 import os.path as osp
 import numpy as np
@@ -7,9 +11,11 @@ from detectron2.data import DatasetCatalog, MetadataCatalog
 from detectron2.structures import BoxMode
 import torch
 import pandas as pd
+import cv2
 
-cur_dir = osp.dirname(osp.abspath(__file__))
-sys.path.insert(0, osp.join(cur_dir, "../../../../"))
+cur_dir = osp.abspath(osp.dirname(__file__))
+PROJ_ROOT = osp.join(cur_dir, "../../../..")
+sys.path.insert(0, PROJ_ROOT)
 
 from lib.vis_utils.colormap import colormap
 from lib.utils.mask_utils import mask2bbox_xyxy, cocosegm2mask, get_edge
@@ -24,19 +30,29 @@ score_thr = 0.3
 colors = colormap(rgb=False, maximum=255)
 
 # object info
-id2obj = {1: "spray", 2:"pringles", 3:"tincase"}
+id2obj = {1: "spray", 2: "pringles", 3: "tincase", 4: "sandwich", 5: "mouse"}
 objects = list(id2obj.values())
 
 
 def load_predicted_csv(fname):
     df = pd.read_csv(fname)
+    if "score" not in df.columns:
+        df["score"] = 1
+
+    if "time" not in df.columns:
+        df["time"] = -1
+
     info_list = df.to_dict("records")
     return info_list
 
 
 def parse_Rt_in_csv(_item):
-    return np.array([float(i) for i in _item.strip(" ").split(" ")])
-
+    if isinstance(_item, np.ndarray):
+        return _item.astype(float)
+    elif isinstance(_item, str):
+        return np.array([float(i) for i in _item.strip().split()])
+    else:
+        raise TypeError(f"Unsupported type: {type(_item)}")
 
 # Camera info
 width = 1280
@@ -46,7 +62,7 @@ tensor_kwargs = {"device": torch.device("cuda"), "dtype": torch.float32}
 image_tensor = torch.empty((height, width, 4), **tensor_kwargs).detach()
 seg_tensor = torch.empty((height, width, 4), **tensor_kwargs).detach()
 
-model_dir = "datasets/BOP_DATASETS/SenseShift6D/models/"
+model_dir = "/SenseShift6D/models/"
 
 model_paths = [osp.join(model_dir, f"obj_{obj_id:06d}.ply") for obj_id in id2obj]
 
@@ -58,30 +74,9 @@ ren = EGLRenderer(
     height=height,
 )
 
-# --- setup (modify here) ---
-
-obj_id = 2 # 0:spray, 1:pringles, 2:tincase
-lv=1
-e=2500
-g=48
-d=0
-eg=f"e{e}g{g}"
-# eg=f"ae"
-
-# ---
-
-obj_name = id2obj[obj_id+1]
-test_name = obj_name
-if obj_id == 0:
-    test_name = "spray-"
-
-pred_path = osp.join(
-    f"output/gdrn/SS6D/exp1/{test_name}/inference_model_final/ss6d_{obj_name}_lv{lv}{eg}_d{d}_te/0{obj_id+1}-{obj_name}-test-iter0_ss6d-test.csv"
-)
-
-vis_dir = f"core/gdrn_modeling/tools/ss6d/predicted_gdrn/{obj_name}/lv{lv}{eg}"
-
-bbox_path = "datasets/BOP_DATASETS/SenseShift6D/test/test_bboxes/scene_gt_info_bboxes.json"
+pred_path = "/gdrnpp_bop2022/core/gdrn_modeling/tools/ss6d/final_outputs/iclr/hipose/csv/SenseShift6D_tincase_B5_1_E2500G48.csv"
+vis_dir = "/gdrnpp_bop2022/core/gdrn_modeling/tools/ss6d/final_outputs/iclr/hipose/tincase/" 
+bbox_path = "/SenseShift6D/test/test_bboxes/scene_gt_info_bboxes.json"
 
 mmcv.mkdir_or_exist(vis_dir)
 
@@ -93,20 +88,20 @@ for item in preds_csv:
     item["time"] = float(item["time"])
     item["score"] = float(item["score"])
     item["R"] = parse_Rt_in_csv(item["R"]).reshape(3, 3)
+    item["t"] = parse_Rt_in_csv(item["t"]) 
     item["t"] = parse_Rt_in_csv(item["t"]) / 1000
-    item["obj_name"] = id2obj[item["obj_id"]]
+    # item["obj_name"] = id2obj[item["obj_id"]]
+
     if im_key not in preds:
         preds[im_key] = []
     preds[im_key].append(item)
 
-dataset_name = f"ss6d_{obj_name}_lv{lv}{eg}_d{d}_te"
-print(dataset_name)
+dataset_name = "ss6d_{}_{}{}_d{}_te".format('tincase', 'lv1', 'E2500G48'.lower(),1)
 register_datasets([dataset_name])
 
 meta = MetadataCatalog.get(dataset_name)
 print("MetadataCatalog: ", meta)
 objs = meta.objs
-
 dset_dicts = DatasetCatalog.get(dataset_name)
 for d in tqdm(dset_dicts):
     K = d["cam"]
@@ -122,11 +117,12 @@ for d in tqdm(dset_dicts):
     imH, imW = img.shape[:2]
 
     if scene_im_id not in preds:
-        print(scene_im_id, "not detected")
+        print(f"[{scene_im_id}] not detected in predictions. Skipping.")
         continue
+    
     cur_preds = preds[scene_im_id]
     cur_bboxes = pred_bboxes[scene_im_id]
-    kpts_2d_est = []
+    
     est_Rs = []
     est_ts = []
     est_labels = []
@@ -135,15 +131,17 @@ for d in tqdm(dset_dicts):
             R_est = pred["R"]
             t_est = pred["t"]
             score = pred["score"]
-            obj_name = pred["obj_name"]
-        except:
+            # obj_name = pred["obj_name"]
+            obj_name = id2obj[item['obj_id']]
+        except KeyError as e:
+            print(f"Skipping prediction {pred_i} due to missing key: {e}")
             continue
         if score < score_thr:
             continue
 
         est_Rs.append(R_est)
         est_ts.append(t_est)
-        est_labels.append(objects.index(obj_name))  # 0-based label
+        est_labels.append(objects.index(obj_name))
 
     bboxes = []
     labels = []
@@ -157,11 +155,7 @@ for d in tqdm(dset_dicts):
         bboxes.append(np.array([x1, y1, x2, y2]))
         labels.append(str(bbox["obj_id"]))
 
-    img_bbox = vis_image_bboxes_cv2(
-        img,
-        bboxes,
-        labels,
-    )
+    img_bbox = vis_image_bboxes_cv2(img, bboxes, labels)
 
     im_gray = mmcv.bgr2gray(img, keepdim=True)
     im_gray_3 = np.concatenate([im_gray, im_gray, im_gray], axis=2)
@@ -170,7 +164,6 @@ for d in tqdm(dset_dicts):
     gt_ts = []
     gt_labels = []
 
-    # 0-based label
     annos = d["annotations"]
     cat_ids = [anno["category_id"] for anno in annos]
     obj_names = [objs[cat_id] for cat_id in cat_ids]
@@ -180,53 +173,61 @@ for d in tqdm(dset_dicts):
     Rs = [quat2mat(quat) for quat in quats]
     for anno_i, anno in enumerate(annos):
         obj_name = obj_names[anno_i]
-        gt_labels.append(objects.index(obj_name))  # 0-based label
-
+        gt_labels.append(objects.index(obj_name))
         gt_Rs.append(Rs[anno_i])
         gt_ts.append(transes[anno_i])
 
     est_poses = [np.hstack([_R, _t.reshape(3, 1)]) for _R, _t in zip(est_Rs, est_ts)]
     gt_poses = [np.hstack([_R, _t.reshape(3, 1)]) for _R, _t in zip(gt_Rs, gt_ts)]
 
-    ren.render(
-        est_labels,
-        est_poses,
-        K=K,
-        image_tensor=image_tensor,
-        background=im_gray_3,
-    )
-    ren_bgr = (image_tensor[:, :, :3].detach().cpu().numpy() + 0.5).astype("uint8")
+    vis_im = img.copy()
+    
+    mask_est = np.zeros(img.shape[:2], dtype=bool)
+    mask_gt = np.zeros(img.shape[:2], dtype=bool)
+    
+    if est_labels:
+        for est_label, est_pose in zip(est_labels, est_poses):
+            ren.render([est_label], [est_pose], K=K, seg_tensor=seg_tensor)
+            est_mask = (seg_tensor[:, :, 0].detach().cpu().numpy() > 0).astype("uint8")
+            est_edge = get_edge(est_mask, bw=3, out_channel=1)
+            mask_est[est_edge != 0] = True
 
-    for gt_label, gt_pose in zip(gt_labels, gt_poses):
-        ren.render([gt_label], [gt_pose], K=K, seg_tensor=seg_tensor)
-        gt_mask = (seg_tensor[:, :, 0].detach().cpu().numpy() > 0).astype("uint8")
-        gt_edge = get_edge(gt_mask, bw=3, out_channel=1)
-        ren_bgr[gt_edge != 0] = np.array(mmcv.color_val("red"))
+    if gt_labels:
+        for gt_label, gt_pose in zip(gt_labels, gt_poses):
+            ren.render([gt_label], [gt_pose], K=K, seg_tensor=seg_tensor)
+            gt_mask = (seg_tensor[:, :, 0].detach().cpu().numpy() > 0).astype("uint8")
+            gt_edge = get_edge(gt_mask, bw=3, out_channel=1)
+            mask_gt[gt_edge != 0] = True
 
-    for est_label, est_pose in zip(est_labels, est_poses):
-        # ren.render([est_label], [est_pose], K=K, seg_tensor=seg_tensor)
-        ren.render([est_label], [est_pose], K=K, image_tensor = None, seg_tensor=seg_tensor)
-        est_mask = (seg_tensor[:, :, 0].detach().cpu().numpy() > 0).astype("uint8")
-        est_edge = get_edge(est_mask, bw=3, out_channel=1)
-        ren_bgr[est_edge != 0] = np.array(mmcv.color_val("green"))
+    green_color = np.array(mmcv.color_val("green"))
+    red_color = np.array(mmcv.color_val("red"))
 
-    mask = (est_edge == 0) & (gt_edge == 0)
-    ren_bgr[mask] = img[mask]
+    vis_im[mask_gt] = red_color
+    vis_im[mask_est] = green_color
 
-    vis_im = ren_bgr
+    if est_Rs:
+        axis_length = 0.05
+        points_3d = np.float32([[0, 0, 0], [axis_length, 0, 0], [0, axis_length, 0], [0, 0, axis_length]]).reshape(-1, 3)
+        K_float = K.astype(np.float32)
+        dist_coeffs = np.zeros((4, 1))
+
+        for R_est, t_est in zip(est_Rs, est_ts):
+            points_2d, _ = cv2.projectPoints(points_3d, R_est, t_est, K_float, dist_coeffs)
+            points_2d = points_2d.reshape(-1, 2).astype(int)
+
+            origin_2d = tuple(points_2d[0])
+            x_axis_2d = tuple(points_2d[1])
+            y_axis_2d = tuple(points_2d[2])
+            z_axis_2d = tuple(points_2d[3])
+
+            cv2.line(vis_im, origin_2d, x_axis_2d, (0, 0, 255), 2)
+            cv2.line(vis_im, origin_2d, y_axis_2d, (0, 255, 0), 2)
+            cv2.line(vis_im, origin_2d, z_axis_2d, (255, 0, 0), 2)
 
     show = False
     if show:
         grid_show([img_bbox[:, :, ::-1], vis_im[:, :, ::-1]], ["im", "est"], row=1, col=2)
-        # im_show = cv2.hconcat([img, vis_im, vis_im_add])
-        # im_show = cv2.hconcat([img, vis_im])
-        # cv2.imshow("im_est", im_show)
-        # if cv2.waitKey(0) == 27:
-        #     break  # esc to quit
     else:
-        # save_path_0 = osp.join(vis_dir, "{}_{:06d}_vis0.png".format(scene_id, im_id))
-        # mmcv.imwrite(img_bbox, save_path_0)
-
-        save_path_1 = osp.join(vis_dir, "{}_{:06d}_vis1.png".format(scene_id, im_id))
+        current_obj_name = id2obj[item['obj_id']] 
+        save_path_1 = osp.join(vis_dir, "{}_{}_{:06d}_vis_depth{}.png".format(current_obj_name, item['sensor'], im_id, item['depth']))
         mmcv.imwrite(vis_im, save_path_1)
-# ffmpeg -r 5 -f image2 -s 1920x1080 -pattern_type glob -i "./ycbv_vis_gt_pred_full_video/*.png" -vcodec libx264 -crf 25  -pix_fmt yuv420p ycbv_vis_video.mp4
