@@ -80,7 +80,6 @@ class Refiner(pl.LightningModule):
         if idx_batch == 0:
             self.move_to_device()
 
-        # --- [추가] NPZ 파일 존재 여부 확인 및 건너뛰기 로직 ---
         save_path = osp.join(self.refined_predictions_dir, f"batch_{idx_batch:06d}.npz")
         if osp.exists(save_path):
             logger.info(f"Skipping batch {idx_batch}, output file already exists: {save_path}")
@@ -145,10 +144,6 @@ class Refiner(pl.LightningModule):
         refinement_time = self.timer.toc()
         self.timer.reset()
         
-        # # --- [추가] 결과 텐서의 디바이스 확인 ---
-        # print(f"DEBUG: Predicted pose device is on -> {pred_poses.device}")
-        # # ------------------------------------
-
         brightness = np.asarray(batch.infos.brightness).astype(str)
         rgb_sensor = np.asarray(batch.infos.rgb_sensor).astype(str)
         depth_sensor = np.asarray(batch.infos.depth_sensor).astype(str)
