@@ -269,13 +269,17 @@ Modifications:
 
 ### Instance Segmentation Model:
 
-You can render CAD templates by uncommentting the lines before "Run instance segementation model".
+First place `sam6d/ISM/run_inference_ss6d_whole.py` under original [SAM-6D repository](https://github.com/JiehongLin/SAM-6D) -> `SAM-6D/Instance_Segmentation_Model`.
+
+You can render CAD templates by uncommentting the lines before "Run instance segementation model" in the file.
 
 ```
 ./sam6d/scripts/run/demo_ss6d_whole_ism.sh
 ```
 
 ### Pose Estimation Model:
+
+First place `am6d/PEM/run_inference_ss6d_whole.py, am6d/PEM/run_inference_ss6d_whole_gt.py` under original [SAM-6D repository](https://github.com/JiehongLin/SAM-6D) -> `SAM-6D/Pose_Estimation_Model`.
 
 You can choose `demo_ss6d_whole_pem.sh` to use ism segmentation mask or `demo_ss6d_whole_pem_gt.sh` to use GT segmentation mask.
 
