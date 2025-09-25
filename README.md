@@ -195,11 +195,15 @@ Modifications:
      
    - HiPose/hipose/tools_for_BOP/ss6d_io.py
  
+   - HiPose/hipose/tools_for_BOP/ss6d_io_depth_oracle.py
+ 
    - HiPose/hipose/tools_for_BOP/pbr_io.py
  
    - HiPose/hipose/train_ss6d.py
  
    - HiPose/hipose/test_with_region_v3.py
+ 
+   - HiPose/hipose/test_with_region_v3_depth_oracle.py
  
 - Modified:
 
