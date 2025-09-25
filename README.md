@@ -300,6 +300,37 @@ Calculates ADD and AUC values for pem results.
 ```
 
 
+### 📌 FoundationPose
+Original Repository: [FoundationPose](https://github.com/NVlabs/FoundationPose)
+
+Modifications:
+
+- Added:
+
+   - FoundationPose/run_ss6d.py
+ 
+   - FoundationPose/run_ss6d_depth_oracle.py
+ 
+   - FoundationPose/datareader_depth_oracle.py
+ 
+- Modified:
+
+   - FoundationPose/datareader.py
+
+
+### Testing:
+
+```
+python run_ss6d.py \
+  --brightness B75 \
+  --general False \
+  --obj_name spray \
+  --eval_output_path outputs \
+  --debug 0
+```
+
+
+
 ## ⚒️ Tools
 Some useful codes.
 
