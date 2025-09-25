@@ -110,8 +110,8 @@ SenseShift6D/
 
 ___
 
-## 🔧 Baseline Models
-SenseShift6D is designed to be easily integrated into various existing 6D object pose estimation frameworks. In our experiments, we evaluated the dataset using three popular baseline models:
+## 🔧 Baseline Models (Instance-level)
+SenseShift6D is designed to be easily integrated into various existing 6D object pose estimation frameworks. In our experiments, we trained three popular baseline models with the dataset:
 
 ### 📌 GDRNPP
 Original Repository: [GDRNPP_BOP2022](https://github.com/shanice-l/gdrnpp_bop2022)
@@ -237,6 +237,60 @@ Each model can be run with minimal changes to the original codebase. You may eit
 
 
 ---
+## 🔧 Baseline Models (Unseen)
+
+### 📌 SAM-6D
+Original Repository: [SAM-6D](https://github.com/JiehongLin/SAM-6D)
+
+Modifications:
+
+- Added:
+
+   - sam6d/ISM/run_inference_ss6d_whole.py
+
+   - sam6d/PEM/run_inference_ss6d_whole.py
+ 
+   - sam6d/PEM/run_inference_ss6d_whole_gt.py
+   
+   - sam6d/scripts/evaluation/calculate_ADD_ss6d.py
+
+   - sam6d/scripts/evaluation/calculate_ADD_ss6d_gt.py
+
+   - sam6d/scripts/evaluation/eval.sh
+   
+   - sam6d/scripts/evaluation/merge.py
+
+   - sam6d/scripts/run/demo_ss6d_whole_ism.sh
+
+   - sam6d/scripts/run/demo_ss6d_whole_pem.sh
+
+   - sam6d/scripts/run/demo_ss6d_whole_pem_gt.sh
+
+
+### Instance Segmentation Model:
+
+You can render CAD templates by uncommentting the lines before "Run instance segementation model".
+
+```
+./sam6d/scripts/run/demo_ss6d_whole_ism.sh
+```
+
+### Pose Estimation Model:
+
+You can choose `demo_ss6d_whole_pem.sh` to use ism segmentation mask or `demo_ss6d_whole_pem_gt.sh` to use GT segmentation mask.
+
+```
+./sam6d/scripts/run/demo_ss6d_whole_pem.sh
+```
+
+### Evaluation:
+
+Calculates ADD and AUC values for pem results.
+
+```
+./sam6d/scripts/evaluation/eval.sh
+```
+
 
 ## ⚒️ Tools
 Some useful codes.
