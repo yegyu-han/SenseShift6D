@@ -1,16 +1,10 @@
-"""
-This code is a modified version of the original implementation from:
-https://github.com/shanice-l/gdrnpp_bop2022
+# 실험1) PBR + lv3 AE (general setting)
+# 실험2) PBR + lv3 AE + aug (aug_prob = 0.8)
+# 실험3) PBR + ALL (foundation setting)
 
-Original code is licensed under the Apache License 2.0.
-"""
-# train 1) PBR + lv3 AE (general setting)
-# train 2) PBR + lv3 AE + aug (aug_prob = 0.8)
-# train 3) PBR + ALL (foundation setting)
+_base_ = ["../../../_base_/gdrn_base.py"]
 
-_base_ = ["../../_base_/gdrn_base.py"]
-
-OUTPUT_DIR = "output/gdrn/SS6D/exp1/spray"
+OUTPUT_DIR = "output/gdrn/SS6D/ICLR_inference/exp1/mouse"
 INPUT = dict(
     DZI_PAD_SCALE=1.5,
     TRUNCATE_FG=False,
@@ -53,30 +47,43 @@ SOLVER = dict(
     WARMUP_ITERS=1000,
 
 )
-LEVELS = ["lv1", "lv2", "lv3", "lv4", "lv5"]
-TE_RGBs = ["AE", "E9G16", "E9G48", "E9G80", "E9G112",
-             "E39G16", "E39G48", "E39G80", "E39G112",
-             "E156G16", "E156G48", "E156G80", "E156G112",
-             "E625G16", "E625G48", "E625G80", "E625G112",
-             "E2500G16", "E2500G48", "E2500G80", "E2500G112"]
-TR_RGBs = ["AE", "E2G0", "E2G32", "E2G64", "E2G96", "E2G128",
-             "E4G0", "E4G32", "E4G64", "E4G96", "E4G128",
-             "E19G0", "E19G32", "E19G64", "E19G96", "E19G128",
-             "E78G0", "E78G32", "E78G64", "E78G96", "E78G128",
-             "E312G0", "E312G32", "E312G64", "E312G96", "E312G128",
-             "E1250G0", "E1250G32", "E1250G64", "E1250G96", "E1250G128",
-             "E5000G0", "E5000G32", "E5000G64", "E5000G96", "E5000G128",
-             "E10000G0", "E10000G32", "E10000G64", "E10000G96", "E10000G128"]
-# DEPTHs = ["0", "1", "2", "3"]
+LEVELS = [ "lv1", "lv2", "lv3", "lv4", "lv5" ]
+
+TE_RGBs = [
+    "AE",
+    "E9G16", "E9G48", "E9G80", "E9G112",
+    "E39G16", "E39G48", "E39G80", "E39G112",
+    "E156G16", "E156G48", "E156G80", "E156G112",
+    "E625G16", "E625G48", "E625G80", "E625G112",
+    "E2500G16", "E2500G48", "E2500G80", "E2500G112"
+    ]
+
+TR_RGBs_AE = [ "AE", ]
+
+TR_RGBs_SC = [
+            "E2G0", "E2G32", "E2G64", "E2G96", "E2G128",
+            "E4G0", "E4G32", "E4G64", "E4G96", "E4G128",
+            "E19G0", "E19G32", "E19G64", "E19G96", "E19G128",
+            "E78G0", "E78G32", "E78G64", "E78G96", "E78G128",
+            "E312G0", "E312G32", "E312G64", "E312G96", "E312G128",
+            "E1250G0", "E1250G32", "E1250G64", "E1250G96", "E1250G128",
+            "E5000G0", "E5000G32", "E5000G64", "E5000G96", "E5000G128",
+            "E10000G0", "E10000G32", "E10000G64", "E10000G96", "E10000G128"
+            ]
+
+TR_RGBs = TR_RGBs_AE
+
 DEPTHs = ["0"]
-TEST = tuple(f"ss6d_spray_{lv.lower()}{rgb.lower()}_d{depth}_te" for lv in LEVELS for rgb in TE_RGBs for depth in DEPTHs)
+TEST = tuple(f"ss6d_mouse_{lv.lower()}{rgb.lower()}_d{depth}_te" for lv in LEVELS for rgb in TE_RGBs for depth in DEPTHs)
 
 DATASETS = dict(
-    TRAIN=("ss6d_spray_train_pbr",),
-    TRAIN2=("ss6d_spray_lv3ae_tr",),
+    TRAIN=("ss6d_mouse_train_pbr",),
+    TRAIN2 = tuple(f"ss6d_mouse_lv3{rgb.lower()}_tr" for rgb in TR_RGBs),
     TRAIN2_RATIO=0.03125,
-    #TRAIN2 = tuple(f"ss6d_spray_{lv}{rgb.lower()}_tr" for lv in LEVELS for rgb in TR_RGBs),
+
+    #TRAIN2 = tuple(f"ss6d_mouse_{lv}{rgb.lower()}_tr" for lv in LEVELS for rgb in TR_RGBs),
     #TRAIN2_RATIO=0.71930,
+    
     TEST = TEST,
     # AP        AP50    AP75    AR      inf.time
     DET_FILES_TEST=tuple(
@@ -155,5 +162,21 @@ MODEL = dict(
     ),
 )
 
+VAL = dict(
+    DATASET_NAME="ss6d",
+    SCRIPT_PATH="lib/pysixd/scripts/eval_pose_results_more.py",
+    TARGETS_FILENAME="test_targets.json",
+    ERROR_TYPES="mspd,mssd,vsd,ad,reS,teS",
+    # ERROR_TYPES="ad, rete,",
+    RENDERER_TYPE="cpp",  # cpp, python, egl
+    SPLIT="test",
+    SPLIT_TYPE="",
+    N_TOP=1,  # SISO: 1, VIVO: -1 (for LINEMOD, 1/-1 are the same)
+    EVAL_CACHED=False,  # if the predicted poses have been saved
+    SCORE_ONLY=False,  # if the errors have been calculated
+    EVAL_PRINT_ONLY=False,  # if the scores/recalls have been saved
+    EVAL_PRECISION=False,  # use precision or recall
+    USE_BOP=True,  # whether to use bop toolkit
+)
 
 TEST = dict(EVAL_PERIOD=0, VIS=False, TEST_BBOX_TYPE="est")  # gt | est

@@ -1,9 +1,3 @@
-"""
-This code is a modified version of the original implementation from:
-https://github.com/shanice-l/gdrnpp_bop2022
-
-Original code is licensed under the Apache License 2.0.
-"""
 import hashlib
 import logging
 import os
@@ -20,7 +14,7 @@ from detectron2.data import DatasetCatalog, MetadataCatalog
 from detectron2.structures import BoxMode
 
 cur_dir = osp.dirname(osp.abspath(__file__))
-PROJ_ROOT = osp.normpath(osp.join(cur_dir, "../../.."))
+PROJ_ROOT = osp.normpath(osp.join(cur_dir, "../../../.."))
 sys.path.insert(0, PROJ_ROOT)
 
 import ref
@@ -32,8 +26,8 @@ from lib.utils.utils import dprint, iprint, lazy_property
 logger = logging.getLogger(__name__)
 DATASETS_ROOT = osp.normpath(osp.join(PROJ_ROOT, "datasets"))
 
-NUM_SCENES = 3
-DEPTH_MODE = "1"
+NUM_SCENES = 5
+DEPTH_MODE = "0_G0"
 
 class SS6D_Dataset:
     def __init__(self, data_cfg):
@@ -61,6 +55,7 @@ class SS6D_Dataset:
 
         self.rgb_mode = data_cfg["rgb_mode"]
         self.depth_mode = data_cfg["depth_mode"]
+        self.bright_level = data_cfg['bright_level']
 
         self.cache_dir = data_cfg.get("cache_dir", osp.join(PROJ_ROOT, ".cache"))  # .cache
         self.use_cache = data_cfg.get("use_cache", True)
@@ -315,7 +310,7 @@ def get_SS6D_metadata(obj_names, ref_key):
     return meta
 
 
-SS6D_OBJECTS = ["spray", "pringles", "tincase"]
+SS6D_OBJECTS = ["spray", "pringles", "tincase", "sandwich", "mouse"]
 ################################################################################
 SPLITS_SS6D_TR = {}
 B_values = {
@@ -325,7 +320,9 @@ B_values = {
     "lv4": "B75",
     "lv5": "B100",
 }
-rgb_modes = ["AE", "E2G0", "E2G32", "E2G64", "E2G96", "E2G128",
+rgb_modes = ["AE",
+             # "AEG0", "AEG32", "AEG64", "AEG96", "AEG128", 
+             "E2G0", "E2G32", "E2G64", "E2G96", "E2G128",
              "E4G0", "E4G32", "E4G64", "E4G96", "E4G128",
              "E19G0", "E19G32", "E19G64", "E19G96", "E19G128",
              "E78G0", "E78G32", "E78G64", "E78G96", "E78G128",
@@ -341,6 +338,7 @@ for lv, b_dir in B_values.items():
             name=key,
             rgb_mode=rgb_mode,
             depth_mode=DEPTH_MODE,
+            bright_level = b_dir,
             objs=SS6D_OBJECTS,
             dataset_root=osp.join(DATASETS_ROOT, f"BOP_DATASETS/SenseShift6D/train/{b_dir}"),
             models_root=osp.join(DATASETS_ROOT, "BOP_DATASETS/SenseShift6D/models"),
@@ -357,6 +355,30 @@ for lv, b_dir in B_values.items():
             ref_key="ss6d",
             )
 
+"""
+SPLITS_SS6D_AE_TE = dict(
+    ss6d_lv1ae_te=dict(
+        rgb_mode = RGB_MODE,
+        depth_mode = DEPTH_MODE,
+        name=f"ss6d_lv1{RGB_MODE}_te",
+        objs=SS6D_OBJECTS,  # selected objects
+        dataset_root=osp.join(DATASETS_ROOT, "BOP_DATASETS/SenseShift6D/test/B5"),
+        models_root=osp.join(DATASETS_ROOT, "BOP_DATASETS/SenseShift6D/models"),
+        xyz_root=osp.join(DATASETS_ROOT, "BOP_DATASETS/SenseShift6D/test/B5/xyz_crop"),
+        scale_to_meter=0.001,
+        with_masks=True,  # (load masks but may not use it)
+        with_depth=True,  # (load depth path here, but may not use it)
+        height=720,
+        width=1280,
+        cache_dir=osp.join(PROJ_ROOT, ".cache"),
+        use_cache=True,
+        num_to_load=-1,
+        filter_invalid=True,
+        ref_key="ss6d",
+    ),
+)
+
+"""
 
 # single obj splits
 for obj in SS6D_OBJECTS:
@@ -368,6 +390,7 @@ for obj in SS6D_OBJECTS:
                     name=name,
                     rgb_mode=rgb_mode,
                     depth_mode=DEPTH_MODE,
+                    bright_level = b_dir,
                     objs=[obj],  # only this obj
                     dataset_root=osp.join(DATASETS_ROOT, f"BOP_DATASETS/SenseShift6D/train/{b_dir}"),
                     models_root=osp.join(DATASETS_ROOT, "BOP_DATASETS/SenseShift6D/models"),
@@ -383,6 +406,31 @@ for obj in SS6D_OBJECTS:
                     filter_invalid=True,
                     ref_key="ss6d",
                     )
+
+"""
+# single obj splits
+for obj in SS6D_OBJECTS:
+    for split in [f"lv1{RGB_MODE}_te", f"lv2{RGB_MODE}_te", f"lv3{RGB_MODE}_te", f"lv4{RGB_MODE}_te", f"lv5{RGB_MODE}_te"]:
+        name = "ss6d_{}_{}".format(obj, split)
+        if name not in SPLITS_SS6D_AE_TE:
+            SPLITS_SS6D_AE_TE[name] = dict(
+                name=name,
+                objs=[obj],  # only this obj
+                dataset_root=osp.join(DATASETS_ROOT, "BOP_DATASETS/SenseShift6D/test/B50"),
+                models_root=osp.join(DATASETS_ROOT, "BOP_DATASETS/SenseShift6D/models"),
+                xyz_root=osp.join(DATASETS_ROOT, "BOP_DATASETS/SenseShift6D/test/B50/xyz_crop"),
+                scale_to_meter=0.001,
+                with_masks=True,  # (load masks but may not use it)
+                with_depth=True,  # (load depth path here, but may not use it)
+                height=720,
+                width=1280,
+                cache_dir=osp.join(PROJ_ROOT, ".cache"),
+                use_cache=True,
+                num_to_load=-1,
+                filter_invalid=True,
+                ref_key="ss6d",
+            )
+"""
 
 
 def register_with_name_cfg(name, data_cfg=None):

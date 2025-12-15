@@ -1,9 +1,3 @@
-"""
-This code is a modified version of the original implementation from:
-https://github.com/shanice-l/gdrnpp_bop2022
-
-Original code is licensed under the Apache License 2.0.
-"""
 # -*- coding: utf-8 -*-
 """inference on dataset; save results; evaluate with custom evaluation
 funcs."""
@@ -35,10 +29,11 @@ from core.utils.pose_utils import get_closest_rot
 from core.utils.my_visualizer import MyVisualizer, _RED, _GREEN, _BLUE, _GREY
 from core.utils.data_utils import crop_resize_by_warp_affine
 from lib.pysixd import inout, misc
-from lib.pysixd.pose_error import add, adi, arp_2d, re, te
+from lib.pysixd.pose_error import add, adi, arp_2d, re, te, vsd, mssd, mspd
 from lib.utils.mask_utils import binary_mask_to_rle
 from lib.utils.utils import dprint, dict_merge
 from lib.vis_utils.image import grid_show, vis_image_bboxes_cv2
+from lib.egl_renderer.egl_renderer_v3 import EGLRenderer
 
 from .engine_utils import get_out_coor, get_out_mask
 
@@ -75,6 +70,36 @@ class GDRN_EvaluatorCustom(DatasetEvaluator):
             inout.load_ply(model_path, vertex_scale=self.data_ref.vertex_scale) for model_path in self.model_paths
         ]
 
+        misc.log("Initializing renderer...")
+        texture_paths = [
+            model_path.replace(".ply", ".png") if osp.exists(model_path.replace(".ply", ".png")) else ""
+            for model_path in self.model_paths
+        ]
+        self.ren = EGLRenderer(
+            model_paths=self.model_paths,
+            texture_paths=texture_paths,
+            # vertex_scale=1,
+            vertex_scale=0.001,
+            # model_loadfn="pyassimp",
+            use_cache=True,
+            width=self.data_ref.width,
+            height=self.data_ref.height,
+            znear=0.01,
+            zfar=10000,
+        )
+
+        self.models_info = inout.load_json(osp.join(self.data_ref.model_eval_dir, "models_info.json"), keys_to_int=True)
+        #print("[DEBUG] model_info:", self.models_info)
+        #print("[DEBUG] obj_ids:", self.obj_ids)
+        """
+        self.models_sym = {
+                'R': np.identity(3),
+                't': np.zeros((3, 1))
+            }
+        """
+        # for obj_id in self.obj_ids:
+        #    self.models_sym[obj_id] = misc.get_symmetry_transformations(self.models_info[obj_id], 0.01)
+        #print("[DEBUG] model_sym:", self.models_sym)
         if cfg.DEBUG:
             from lib.render_vispy.model3d import load_models
             from lib.render_vispy.renderer import Renderer
@@ -602,6 +627,8 @@ class GDRN_EvaluatorCustom(DatasetEvaluator):
             file_name = im_dict["file_name"]
             annos = im_dict["annotations"]
             K = im_dict["cam"]
+            depth_scale = 1000.0/im_dict["depth_factor"]
+            depth_path = osp.join(PROJ_ROOT, im_dict["depth_file"])
             for anno in annos:
                 quat = anno["quat"]
                 R = quat2mat(quat)
@@ -609,7 +636,7 @@ class GDRN_EvaluatorCustom(DatasetEvaluator):
                 obj_name = self._metadata.objs[anno["category_id"]]
                 if obj_name not in self.gts:
                     self.gts[obj_name] = OrderedDict()
-                self.gts[obj_name][file_name] = {"R": R, "t": trans, "K": K}
+                self.gts[obj_name][file_name] = {"R": R, "t": trans, "K": K, "depth_scale": depth_scale, "depth_path": depth_path}
 
     def reorganize_preds(self, _predictions):
         # re-organize list of dicts to pred_dict = preds[obj_name][file_name]
@@ -626,7 +653,7 @@ class GDRN_EvaluatorCustom(DatasetEvaluator):
             res_preds[obj_name][file_name].append(new_d)
         return res_preds
     
-    def compute_auc_add(self, errors, max_threshold=0.1, step=0.0001):
+    def compute_auc_add(self, errors, max_threshold=0.1, step=0.001):
         """
         Compute AUC for ADD(-S) error up to max_threshold.
 
@@ -664,12 +691,24 @@ class GDRN_EvaluatorCustom(DatasetEvaluator):
 
         recalls = OrderedDict()
         errors = OrderedDict()
+
         self.get_gts()
 
-        error_names = ["ad", "re", "te", "proj"]
+        ## vsd, mssd, mspd 추가
+        ## (mssd, mspd) sym obj 없다고 가정
+        error_names = ["ad", "re", "te", "proj", "vsd", "mssd", "mspd", "bop"]
+        vsd_delta = 15
+        vsd_taus = list(np.arange(0.05, 0.51, 0.05))
+        vsd_th = [th for th in np.arange(0.05, 0.51, 0.05)]
+
+        mssd_th = [th for th in np.arange(0.05, 0.51, 0.05)]
+        mspd_th = [th for th in np.arange(5, 51, 5)]
+
         # yapf: disable
         metric_names = [
             "ad_2", "ad_5", "ad_10",
+            "vsd", "mssd", "mspd"
+            #, "bop"
             # "rete_2", "rete_5", "rete_10",
             # "re_2", "re_5", "re_10",
             # "te_2", "te_5", "te_10",
@@ -681,6 +720,7 @@ class GDRN_EvaluatorCustom(DatasetEvaluator):
             if obj_name not in self._predictions:
                 continue
             cur_label = self.obj_names.index(obj_name)
+            # print("DEBUG:", cur_label)
             if obj_name not in recalls:
                 recalls[obj_name] = OrderedDict()
                 for metric_name in metric_names:
@@ -691,6 +731,7 @@ class GDRN_EvaluatorCustom(DatasetEvaluator):
                 for err_name in error_names:
                     errors[obj_name][err_name] = []
                 errors[obj_name]["ans"] = []
+                errors[obj_name]["norm_add"] = []
 
             #################
             obj_gts = self.gts[obj_name]
@@ -705,7 +746,7 @@ class GDRN_EvaluatorCustom(DatasetEvaluator):
                 t_pred = obj_preds[file_name][0]["t"]
 
                 R_gt = gt_anno["R"]
-                t_gt = gt_anno["t"]
+                t_gt = gt_anno["t"].reshape(3, 1)
 
                 t_error = te(t_pred, t_gt)
 
@@ -747,13 +788,82 @@ class GDRN_EvaluatorCustom(DatasetEvaluator):
                         R_gt,
                         t_gt,
                         pts=self.models_3d[self.obj_names.index(obj_name)]["pts"],
+                    )   
+
+                    sphere_projections_overlap = None
+                    radius = 0.5 * self.diameters[cur_label]
+                    sphere_projections_overlap = misc.overlapping_sphere_projections(
+                        radius, t_pred.squeeze(), t_gt.squeeze()
                     )
 
+                    spheres_overlap = None
+                    center_dist = np.linalg.norm(t_pred - t_gt)
+                    spheres_overlap = center_dist < self.diameters[cur_label]
+
+                    # calculate vsds
+                    vsd_error = []
+                    if not sphere_projections_overlap:
+                            vsd_error = [1.0] * len(vsd_taus)
+                    else:
+                        # depth_path = osp.join(self.depth_paths[cur_label], file_name)
+                        depth_im = inout.load_depth(gt_anno["depth_path"])
+                        depth_im *= gt_anno["depth_scale"]
+                        
+                        vsd_error = vsd(
+                            R_pred, t_pred, R_gt, t_gt,
+                            depth_im,
+                            gt_anno["K"],
+                            vsd_delta,
+                            vsd_taus,
+                            True,
+                            self.diameters[cur_label],
+                            self.ren,
+                            cur_label+1,
+                            "step",
+                            renderer_type="egl",
+                        )
+
+                    
+                    # calulate mssd
+                    """
+                    if not spheres_overlap:
+                        mssd_error = float("inf")
+                    else:
+                        mssd_error = mssd(
+                                R_pred, t_pred, R_gt, t_gt,
+                                pts=self.models_3d[self.obj_names.index(obj_name)]["pts"],
+                                syms=self.models_sym[cur_label+1],
+                            )
+                    """
+                    identity_transform = {
+                    'R': np.identity(3),
+                    't': np.zeros((3, 1))
+                    }
+
+                    mssd_error = mssd(
+                                R_pred, t_pred, R_gt, t_gt,
+                                pts=self.models_3d[self.obj_names.index(obj_name)]["pts"],
+                                syms=[identity_transform],
+                            )
+
+                    # calculate mspd
+                    mspd_error = mspd(
+                            R_pred, t_pred, R_gt, t_gt,
+                            K=gt_anno["K"],
+                            pts=self.models_3d[self.obj_names.index(obj_name)]["pts"],
+                            syms=[identity_transform],
+                        )
+                        
+                    
                 #########
                 errors[obj_name]["ad"].append(ad_error)
                 errors[obj_name]["re"].append(r_error)
                 errors[obj_name]["te"].append(t_error)
                 errors[obj_name]["proj"].append(proj_2d_error)
+                errors[obj_name]["norm_add"].append(ad_error / self.diameters[cur_label])
+                errors[obj_name]["vsd"].append(vsd_error)
+                errors[obj_name]["mssd"].append(mssd_error)
+                errors[obj_name]["mspd"].append(mspd_error)
                 # 조건 만족 시에만 저장
                 if ad_error < 0.05 * self.diameters[cur_label]:
                     errors[obj_name]["ans"].append(osp.basename(file_name))
@@ -761,6 +871,51 @@ class GDRN_EvaluatorCustom(DatasetEvaluator):
                 recalls[obj_name]["ad_2"].append(float(ad_error < 0.02 * self.diameters[cur_label]))
                 recalls[obj_name]["ad_5"].append(float(ad_error < 0.05 * self.diameters[cur_label]))
                 recalls[obj_name]["ad_10"].append(float(ad_error < 0.1 * self.diameters[cur_label]))
+
+                
+                # vsd
+                vsd_recalls = []
+                for th in vsd_th:
+                    for e in vsd_error:
+                        vsd_recalls.append(float(e < th))
+                if len(vsd_recalls) > 0:
+                    vsd_recall = np.mean(vsd_recalls)
+                    # recalls[obj_name]["vsd"].append(np.mean(vsd_recalls))
+                else:
+                    vsd_recall = 0.0
+                    # recalls[obj_name]["vsd"].append(0.0)
+                recalls[obj_name]["vsd"].append(vsd_recall)
+
+                # mssd
+                # TODO: normalize
+                mssd_recalls = []
+                print("[DEBUG] mmsd:", mssd_error)
+                for th in mssd_th:
+                    mssd_recalls.append(float(mssd_error < th * self.diameters[cur_label]))
+                if len(mssd_recalls) > 0:
+                    # recalls[obj_name]["mssd"].append(np.mean(mssd_recalls))
+                    mssd_recall = np.mean(mssd_recalls)
+                else:
+                    # recalls[obj_name]["mssd"].append(0.0)
+                    mssd_recall = 0.0
+                recalls[obj_name]["mssd"].append(mssd_recall)
+
+                # mspd
+                # TODO: normalize
+                mspd_recalls = []
+                factor = 640.0 / float(self.data_ref.width)
+                for th in mspd_th:
+                    mspd_recalls.append(float(factor * mspd_error < th))
+                if len(mspd_recalls) > 0:
+                    # recalls[obj_name]["mspd"].append(np.mean(mspd_recalls))
+                    mspd_recall  =np.mean(mspd_recalls)
+                else:
+                    # recalls[obj_name]["mspd"].append(0.0)
+                    mspd_recall = 0.0
+                recalls[obj_name]["mspd"].append(mspd_recall)
+
+                errors[obj_name]["bop"].append((vsd_recall + mssd_recall + mspd_recall) / 3)
+
                 # deg, cm 
                 # recalls[obj_name]["rete_2"].append(float(r_error < 2 and t_error < 0.02))
                 # recalls[obj_name]["rete_5"].append(float(r_error < 5 and t_error < 0.05))
@@ -832,8 +987,25 @@ class GDRN_EvaluatorCustom(DatasetEvaluator):
             if len(obj_names) > 0:
                 line.append(f"{100 * np.mean(this_line_res):.2f}")
             big_tab.append(line)
+        
+        line = ["AR_BOP"]
+        this_line_res = []
+        for obj_name in obj_names:
+            ar_vsd = np.mean(recalls[obj_name]["vsd"])
+            ar_mssd = np.mean(recalls[obj_name]["mssd"])
+            ar_mspd = np.mean(recalls[obj_name]["mspd"])
+            ar_bop = (ar_vsd + ar_mssd + ar_mspd) / 3
+            line.append(f"{100 * ar_bop:.2f}")
+            this_line_res.append(ar_bop)
 
-        for error_name in ["ad", "re", "te" ]:
+        if len(this_line_res) > 0:
+            line.append(f"{100 * np.mean(this_line_res):.2f}")
+        else:
+            line.append("0.00")
+        big_tab.append(line)
+
+
+        for error_name in ["ad", "re", "te", "bop"]:
             line = [error_name]
             this_line_res = []
             for obj_name in obj_names:
@@ -856,7 +1028,7 @@ class GDRN_EvaluatorCustom(DatasetEvaluator):
         auc_vals = []
         for obj_name in obj_names:
             cur_label = self.obj_names.index(obj_name)
-            res = np.array(errors[obj_name]["ad"]) * 1000 / self.diameters[cur_label]
+            res = errors[obj_name]["norm_add"]
             if len(res) > 0:
                 auc_val = self.compute_auc_add(errors=res)
                 auc_line.append(f"{auc_val:.3f}")
@@ -908,7 +1080,9 @@ class GDRN_EvaluatorCustom(DatasetEvaluator):
                 self.per_image_errors[base_name][self.dataset_name] = {
                     "ad": obj_errors["ad"][i] * 1000,
                     "re": obj_errors["re"][i],
-                    "te": obj_errors["te"][i] * 1000
+                    "te": obj_errors["te"][i] * 1000,
+                    "norm_add": obj_errors["norm_add"][i],
+                    "bop": obj_errors["bop"][i] * 100 
                 }
         
         # self._logger.info("\n### PER PREDICTION ERRORS ###")    

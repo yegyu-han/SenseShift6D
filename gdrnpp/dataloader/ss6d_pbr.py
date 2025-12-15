@@ -1,10 +1,3 @@
-"""
-This code is a modified version of the original implementation from:
-https://github.com/shanice-l/gdrnpp_bop2022
-
-Original code is licensed under the Apache License 2.0.
-"""
-
 import hashlib
 import logging
 import os
@@ -21,7 +14,7 @@ from detectron2.data import DatasetCatalog, MetadataCatalog
 from detectron2.structures import BoxMode
 
 cur_dir = osp.dirname(osp.abspath(__file__))
-PROJ_ROOT = osp.normpath(osp.join(cur_dir, "../../.."))
+PROJ_ROOT = osp.normpath(osp.join(cur_dir, "../../../.."))
 sys.path.insert(0, PROJ_ROOT)
 
 import ref
@@ -34,7 +27,7 @@ logger = logging.getLogger(__name__)
 DATASETS_ROOT = osp.normpath(osp.join(PROJ_ROOT, "datasets"))
 
 NUM_SCENES = 10
-OBJ_NUMS = 3
+OBJ_NUMS = 5
 
 class SS6D_PBR_Dataset:
     def __init__(self, data_cfg):
@@ -75,6 +68,7 @@ class SS6D_PBR_Dataset:
         ##########################################################
 
         self.scenes = [f"obj{j+1}/{i:06d}" for j in range(OBJ_NUMS) for i in range(NUM_SCENES)]
+        # self.scenes = [f"obj2/{i:06d}" for i in range(NUM_SCENES)]
 
     def __call__(self):
         """Load light-weight instance annotations of all images into a list of
@@ -315,16 +309,17 @@ def get_SS6D_metadata(obj_names, ref_key):
     meta = {"thing_classes": obj_names, "sym_infos": cur_sym_infos}
     return meta
 
-SS6D_OBJECTS = ["spray", "pringles", "tincase"]
+
+SS6D_OBJECTS = ["spray", "pringles", "tincase", "sandwich", "mouse"]
 ################################################################################
 
 SPLITS_SS6D_TRAIN_PBR = dict(
     ss6d_train_pbr=dict(
         name="ss6d_train_pbr",
         objs=SS6D_OBJECTS,  # selected objects
-        dataset_root=osp.join(DATASETS_ROOT, "BOP_DATASETS/SenseShift6D/train_pbr"),
+        dataset_root=osp.join(DATASETS_ROOT, "BOP_DATASETS/SenseShift6D/train_pbr_all"),
         models_root=osp.join(DATASETS_ROOT, "BOP_DATASETS/SenseShift6D/models"),
-        xyz_root=osp.join(DATASETS_ROOT, "BOP_DATASETS/SenseShift6D/train_pbr/xyz_crop"),
+        xyz_root=osp.join(DATASETS_ROOT, "BOP_DATASETS/SenseShift6D/train_pbr_all/xyz_crop"),
         scale_to_meter=0.001,
         with_masks=True,  # (load masks but may not use it)
         with_depth=True,  # (load depth path here, but may not use it)
@@ -346,9 +341,9 @@ for obj in SS6D_OBJECTS:
             SPLITS_SS6D_TRAIN_PBR[name] = dict(
                 name=name,
                 objs=[obj],  # only this obj
-                dataset_root=osp.join(DATASETS_ROOT, "BOP_DATASETS/SenseShift6D/train_pbr"),
+                dataset_root=osp.join(DATASETS_ROOT, "BOP_DATASETS/SenseShift6D/train_pbr_all"),
                 models_root=osp.join(DATASETS_ROOT, "BOP_DATASETS/SenseShift6D/models"),
-                xyz_root=osp.join(DATASETS_ROOT, "BOP_DATASETS/SenseShift6D/train_pbr/xyz_crop"),
+                xyz_root=osp.join(DATASETS_ROOT, "BOP_DATASETS/SenseShift6D/train_pbr_all/xyz_crop"),
                 scale_to_meter=0.001,
                 with_masks=True,  # (load masks but may not use it)
                 with_depth=True,  # (load depth path here, but may not use it)

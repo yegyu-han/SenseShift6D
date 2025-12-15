@@ -1,10 +1,3 @@
-"""
-This code is a modified version of the original implementation from:
-https://github.com/shanice-l/gdrnpp_bop2022
-
-Original code is licensed under the Apache License 2.0.
-"""
-
 # encoding: utf-8
 """This file includes necessary params, info."""
 import os
@@ -31,7 +24,8 @@ bop_root = osp.join(data_root, "BOP_DATASETS/")
 dataset_root = os.path.join(bop_root, "SenseShift6D")
 
 train_real_dir = os.path.join(dataset_root, "train")
-train_pbr_dir = os.path.join(dataset_root, "train_pbr")
+train_pbr_dir = os.path.join(dataset_root, "train_pbr_all")  # bbnc6:/data3/BOP2020/dataset_pbr/tudl_train_pbr
+# train_render_dir = osp.join(dataset_root, "train_render")
 
 test_dir = os.path.join(dataset_root, "test")
 
@@ -41,10 +35,10 @@ model_eval_dir = os.path.join(dataset_root, "models_eval")
 # scaled models (.obj)
 # model_scaled_dir = osp.join(dataset_root, "models_rescaled")
 
-train_scenes = ["{:06d}".format(i) for i in range(3)]
-test_scenes = ["{:06d}".format(i) for i in range(3)]
+train_scenes = ["{:06d}".format(i) for i in range(6)]
+test_scenes = ["{:06d}".format(i) for i in range(6)]
 
-id2obj = {1: "spray", 2: "pringles", 3: "tincase"} 
+id2obj = {1: "spray", 2: "pringles", 3: "tincase", 4: "sandwich", 5: "mouse", 6: "duck"}     
 
 objects = list(id2obj.values())
 obj_num = len(id2obj)
@@ -59,7 +53,10 @@ diameters = (
         [
             277.8929629556948,
             121.84687732405808,
-            130.9916633062778
+            130.9916633062778,
+            164.41491007818098,
+            106.26554674838228,
+            136.78783704912132,
         ]
     )
     / 1000.0
@@ -73,6 +70,10 @@ zFar = 6.0
 center = (height / 2, width / 2)
 
 camera_matrix = np.array(
+    [[633.0723063151041, 0.0, 629.197265625],
+    [0.0, 631.4502111355749, 361.22137437505626], 
+    [0.0, 0.0, 1.0]])
+real_camera_matrix = np.array(
     [[633.0723063151041, 0.0, 629.197265625],
     [0.0, 631.4502111355749, 361.22137437505626], 
     [0.0, 0.0, 1.0]])
