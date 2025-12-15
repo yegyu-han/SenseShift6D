@@ -196,7 +196,8 @@ SENSESHIFT6D_obj_name_obj_id = {
     'pringles': 2,
     'tincase': 3,
     'sandwich': 4,
-    'mouse': 5
+    'mouse': 5,
+    'duck': 6
 }
 
 
