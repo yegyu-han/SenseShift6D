@@ -182,23 +182,19 @@ def main(configs):
                 'E39G16', 'E39G48', 'E39G80', 'E39G112',
                 'E156G16', 'E156G48', 'E156G80', 'E156G112',
                 'E625G16', 'E625G48', 'E625G80', 'E625G112',
-                'E2500G16', 'E2500G48', 'E2500G80', 'E2500G112'
-                ]
+                'E2500G16', 'E2500G48', 'E2500G80', 'E2500G112']
     
     ae_list = ['AE', 'AEG16', 'AEG48', 'AEG80', 'AEG112']
-    ad_ratio = 0.02
+    ad_ratio = 0.05
 
 
-    cvs_path = os.path.join(eval_output_path, 'pose_result_bop', config_file_name)
-    if not os.path.exists(cvs_path):
-        os.makedirs(cvs_path)
-    cvs_path = os.path.join(cvs_path, "{}_{}_{}.csv".format(dataset_name, obj_name, brightness))
-    
+    # 07.16 수정
+    setting = configs['checkpoint_file'].split('/')[-2].split('_')[-2]
     path = eval_output_path + config_file_name
-    print("path: ", path)
     if not os.path.exists(path):
         os.makedirs(path)
-    path = os.path.join(path, "{}_{}_{}.txt".format(dataset_name, obj_name, brightness))
+    path = os.path.join(path, "{}_{}_{}_{}_{}.txt".format(dataset_name, obj_name, brightness, setting, obj_name))
+    # print(" config_file_name.split('_'): ",  )
     if os.path.exists(path):
         os.remove(path)
 
@@ -214,31 +210,23 @@ def main(configs):
 
     for sensor in sensor_list:
 
+        # 07.16 추가
+        cvs_path = os.path.join(eval_output_path, brightness, config_file_name)
+        if not os.path.exists(cvs_path):
+            os.makedirs(cvs_path)
+        cvs_path = os.path.join(cvs_path, "{}_{}_{}_{}".format(dataset_name, obj_name, brightness, sensor))
+
         # define test data loader
         if not bop_challange:
             dataset_dir_test,_,_,_,_,test_rgb_files,test_depth_files,test_mask_files,test_mask_visib_files,test_gts,test_gt_infos,_, camera_params_test = ss6d_io.get_dataset(bop_path, dataset_name,train=False, data_folder=test_folder, data_per_obj=True, incl_param=True, train_obj_visible_theshold=train_obj_visible_theshold, \
             general=general, brightness=brightness, sensor=sensor)
-            if dataset_name == 'ycbv':
-                print("select key frames from ycbv test images")
-                key_frame_index = ycbv_select_keyframe(Detection_reaults, test_rgb_files[obj_id])
-                test_rgb_files_keyframe = [test_rgb_files[obj_id][i] for i in key_frame_index]
-                test_mask_files_keyframe = [test_mask_files[obj_id][i] for i in key_frame_index]
-                test_mask_visib_files_keyframe = [test_mask_visib_files[obj_id][i] for i in key_frame_index]
-                test_gts_keyframe = [test_gts[obj_id][i] for i in key_frame_index]
-                test_gt_infos_keyframe = [test_gt_infos[obj_id][i] for i in key_frame_index]
-                camera_params_test_keyframe = [camera_params_test[obj_id][i] for i in key_frame_index]
-                test_depth_files_keyframe = [test_depth_files[obj_id][i] for i in key_frame_index]
-                test_rgb_files[obj_id] = test_rgb_files_keyframe
-                test_mask_files[obj_id] = test_mask_files_keyframe
-                test_mask_visib_files[obj_id] = test_mask_visib_files_keyframe
-                test_gts[obj_id] = test_gts_keyframe
-                test_gt_infos[obj_id] = test_gt_infos_keyframe
-                camera_params_test[obj_id] = camera_params_test_keyframe
-                test_depth_files[obj_id] = test_depth_files_keyframe
+
         else:
             print("use BOP test images")
             dataset_dir_test,_,_,_,_,test_rgb_files,test_depth_files,test_mask_files,test_mask_visib_files,test_gts,test_gt_infos,_, camera_params_test = bop_io.get_bop_challange_test_data(bop_path, dataset_name, target_obj_id=obj_id+1, data_folder=test_folder)
 
+
+            
         has_gt = True
         if test_gts[obj_id][0] == None:
             has_gt = False
@@ -391,6 +379,7 @@ def main(configs):
                 te_error = 10000
                 if success and has_gt:
                     adx_error = Calculate_Pose_Error_Main(r_GT, t_GT, R_predict, t_predict, vertices)
+
                     re_error = re(r_GT, R_predict)
                     te_error = te(t_GT, t_predict)
                     if np.isnan(adx_error): adx_error = 10000
@@ -446,7 +435,10 @@ def main(configs):
         if Det_Bbox == None:
             scores = [1 for x in range(len(estimated_Rs))]
 
-        write_to_cvs.write_cvs(cvs_path, obj_id+1, brightness, scene_ids, sensor, img_ids, estimated_Rs, estimated_Ts, scores)
+        # 07.16 
+        # write_to_cvs.write_cvs(cvs_path, obj_id+1, brightness, scene_ids, sensor, img_ids, estimated_Rs, estimated_Ts, scores)
+        write_to_cvs.write_cvs(cvs_path, f"{obj_name}_{setting}", obj_id+1, scene_ids, sensor, -1, img_ids, estimated_Rs, estimated_Ts, ADX_error)
+
 
         print(f"-----{sensor}-----")
         AD2_passed = np.mean(AD2_passed)

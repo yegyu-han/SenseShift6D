@@ -10,7 +10,11 @@
 from estimater import *
 from datareader_depth_oracle import *
 import argparse
-sys.path.append(".")
+import sys, os
+
+code_dir = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(code_dir)
+sys.path.append(os.path.join(code_dir, "bop_toolkit"))
 from bop_toolkit.bop_toolkit_lib import inout, pose_error
 from write_csv import write_csv
 
@@ -55,7 +59,7 @@ if __name__=='__main__':
   code_dir = os.path.dirname(os.path.realpath(__file__))
   parser.add_argument('--mesh_obj', type=str, default=None)
   parser.add_argument('--mesh_ply', type=str, default=None)
-  parser.add_argument('--dataset_dir', type=str, default='/mnt/SenseShift6D/test') 
+  parser.add_argument('--dataset_dir', type=str, default='/hdd/yghan/SenseShift6D/test') 
   parser.add_argument('--brightness', type=str, default='B50')
   parser.add_argument('--depth_shuffle', action='store_true')
   parser.add_argument('--sensor', type=str, default=None)
@@ -67,7 +71,7 @@ if __name__=='__main__':
   parser.add_argument('--debug', type=int, default=1)
   parser.add_argument('--debug_dir', type=str, default=f'{code_dir}/debug')
   parser.add_argument('--eval_output_path', type=str)
-  parser.add_argument('--bop_path', type=str, default='/mnt')
+  parser.add_argument('--bop_path', type=str, default='/hdd/yghan')
   parser.add_argument('--dataset_name', type=str, default='SenseShift6D')
   parser.add_argument('--test_folder', type=str, default='test')
   
@@ -78,7 +82,8 @@ if __name__=='__main__':
     "pringles": 1,
     "tincase": 2,
     "sandwich": 3,
-    "mouse": 4
+    "mouse": 4,
+    "duck": 5
   } 
   args.obj_id = OBJ_NAME_TO_ID[args.obj_name]
 
@@ -96,8 +101,8 @@ if __name__=='__main__':
 
 
   if args.mesh_ply is None:
-    mesh_obj_id = args.obj_id + 1  
-    mesh_ply_path = os.path.join('/mnt/SenseShift6D/models', f'obj_{mesh_obj_id:06d}.ply')
+    mesh_obj_id = args.obj_id + 1 
+    mesh_ply_path = os.path.join('/hdd/yghan/SenseShift6D/models', f'obj_{mesh_obj_id:06d}.ply')
     args.mesh_ply = mesh_ply_path
     print(f"[mesh_ply 자동 생성] obj_id + 1 → {mesh_obj_id:06d}")
   else:
@@ -105,7 +110,7 @@ if __name__=='__main__':
 
   if args.mesh_obj is None:
     mesh_obj_id = args.obj_id + 1  
-    mesh_obj_path = os.path.join('/mnt/SenseShift6D/models', f'obj_{mesh_obj_id:06d}.obj')
+    mesh_obj_path = os.path.join('/hdd/yghan/SenseShift6D/models', f'obj_{mesh_obj_id:06d}.obj')
     args.mesh_obj = mesh_obj_path
     print(f"[mesh_obj 자동 생성] obj_id + 1 → {mesh_obj_id:06d}")
   else:
@@ -136,8 +141,9 @@ if __name__=='__main__':
   scorer = ScorePredictor()
   refiner = PoseRefinePredictor()
   refiner.cfg['use_normal'] = False 
-  refiner.cfg['use_light'] = False 
+  refiner.cfg['use_light'] = False
   glctx = dr.RasterizeCudaContext()
+
 
   eval_output_path = args.eval_output_path
   brightness = args.brightness
@@ -163,19 +169,20 @@ if __name__=='__main__':
   AD5_sensor_mean = []
   sample_path = os.path.join(bop_path, dataset_name, test_folder, brightness, str(obj_id).zfill(6), 'rgb/AE')
   n_samples = len(glob.glob(os.path.join(sample_path, '*.png')))
-  ADD_min_error = np.ones(n_samples) * 10000
+  ADD_min_error = np.ones(n_samples) * 10000 
   RE_min_error = np.ones(n_samples) * 10000
   TE_min_error = np.ones(n_samples) * 10000
 
+
   ADD_min_global = np.full(n_samples, np.inf) 
-  preset_min_errors = {dp: np.full(n_samples, np.inf) for dp in depth_preset_list} 
+  preset_min_errors = {dp: np.full(n_samples, np.inf) for dp in depth_preset_list}
   depth_ad5_passed   = {dp: np.zeros(n_samples) for dp in depth_preset_list}
   success_ad5_by_dp  = {dp: set()              for dp in depth_preset_list}
   non_ae_add_means, non_ae_r005 = [], []
   ae_add_means, ae_r005 = [], []
   per_depth_non_ae = {dp: {'add':[], 'r005':[]} for dp in depth_preset_list}
   per_depth_ae = {dp: {'add':[], 'r005':[]} for dp in depth_preset_list}
-  per_depth_auc_non_ae = {dp: float('inf') for dp in depth_preset_list} 
+  per_depth_auc_non_ae = {dp: float('inf') for dp in depth_preset_list}  
   per_depth_auc_ae = {dp: float('inf') for dp in depth_preset_list}    
   global_auc_non_ae_max = -np.inf  
   global_auc_ae_max = -np.inf   
@@ -217,6 +224,7 @@ if __name__=='__main__':
       # json_dirname = f"obj_{obj_id}/{brightness}/depth_{d_preset}"
       # json_filename = f"merged_ism_topscore_{sensor}.json"
       # det_json_path = os.path.join(json_base_dir, json_dirname, json_filename)
+      # print("json path: ", det_json_path)
       det_json_path = None
       
       print("SS6DReader 초기화 중...")  
@@ -228,7 +236,7 @@ if __name__=='__main__':
         depth_shuffle=args.depth_shuffle,
         obj_id=args.obj_id,
         depth_preset_choice=d_preset,
-        # use_detection_mask = True, # False: GT mask, True: detected mask 
+        # use_detection_mask = True,
         use_detection_mask = False,
         det_json_path = det_json_path
       )
@@ -242,6 +250,7 @@ if __name__=='__main__':
       ADX_error=np.zeros(len(reader))
       AUC_ADX_error=np.zeros(len(reader))
       pose_list = [None] * len(reader)  
+      pose_score_list = []
 
       for i in range(len(reader)):
         print(f'프레임 i: {i}')
@@ -258,12 +267,17 @@ if __name__=='__main__':
         print(f"Mask: {reader.mask_files[i]}")
         print(f"Intrinsic K: \n{K}")
 
+        # 기존에는 0번 이미지에서 Pose estimation 후 tracking 하는 과정이었는데,
+        # SS6D는 두 이미지 간 시간 차가 큰 편이라 tracking 없이 pose estimation 수행하도록 함 
         pose = est.register(K=K, rgb=color, depth=depth, ob_mask=mask, iteration=args.est_refine_iter)
+        pose_score = est.scores[0].item()
         R_predict, t_predict = pose[:3,:3], pose[:3,3]
         adx_error = Calculate_ADD_Error_BOP(r_GT, t_GT, R_predict, t_predict, vertices)
 
         pose_list[i] = pose
         print(f"[추적 완료] Pose:\n{pose}")
+
+        pose_score_list.append(pose_score)
 
         re_error = re(r_GT, R_predict)
         te_error = te(t_GT, t_predict)
@@ -283,7 +297,7 @@ if __name__=='__main__':
         TE_error[i] = te_error
 
         if adx_error < ADD_min_error[i] and sensor not in ae_list:
-            ADD_min_error[i] = adx_error
+            ADD_min_error[i] = adx_error # 이미지 별 최소값 업데이트 (센서 통틀어서)
             RE_min_error[i] = re_error
             TE_min_error[i] = te_error
 
@@ -293,6 +307,7 @@ if __name__=='__main__':
             if sensor not in ae_list:
                 preset_min_errors[d_preset][i] = adx_error
                     
+        # 수정, 전체 오라클 업뎃
         if adx_error < ADD_min_global[i]:
             if sensor not in ae_list:
                 ADD_min_global[i] = adx_error
@@ -305,12 +320,14 @@ if __name__=='__main__':
         AUC_ADX_error[i] = sum_correct/100
 
         if sensor not in ae_list:
-            if AUC_ADX_error[i] < per_depth_auc_non_ae[d_preset]:
-                per_depth_auc_non_ae[d_preset] = AUC_ADX_error[i]  
+           per_depth_auc_non_ae[d_preset] = max(per_depth_auc_non_ae[d_preset], AUC_ADX_error[i])
+            # if AUC_ADX_error[i] < per_depth_auc_non_ae[d_preset]:
+            #     per_depth_auc_non_ae[d_preset] = AUC_ADX_error[i]  # 최소값 갱신
         else:
-            if AUC_ADX_error[i] < per_depth_auc_ae[d_preset]:
-                per_depth_auc_ae[d_preset] = AUC_ADX_error[i]  
-
+           per_depth_auc_ae[d_preset] = max(per_depth_auc_ae[d_preset], AUC_ADX_error[i])
+            # if AUC_ADX_error[i] < per_depth_auc_ae[d_preset]:
+            #     per_depth_auc_ae[d_preset] = AUC_ADX_error[i]  # 최소값 갱신
+        # Global AUC 계산
         if sensor not in ae_list:
             global_auc_non_ae_max = max(global_auc_non_ae_max, AUC_ADX_error[i])
         else:
@@ -339,10 +356,10 @@ if __name__=='__main__':
                 sensor=sensor,
                 depth=d_preset,  
                 img_id_=[int(i) for i in reader.ids],
-                pose_=pose_list, 
-                scores=ADX_error.tolist(),  
+                pose_=pose_list,  # 각 프레임에서 추정한 4x4 pose
+                scores=ADX_error.tolist(),  # 각 프레임의 adx
+                pose_scores = pose_score_list
                 )
-
 
       print(f"-----{sensor}-----")
       AD5_passed_oracle = np.mean(AD5_passed)

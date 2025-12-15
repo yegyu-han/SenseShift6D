@@ -10,7 +10,11 @@
 from estimater import *
 from datareader import *
 import argparse
-sys.path.append(".")
+import sys, os
+
+code_dir = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(code_dir)
+sys.path.append(os.path.join(code_dir, "bop_toolkit"))
 from bop_toolkit.bop_toolkit_lib import inout, pose_error
 from write_csv import write_csv
 
@@ -56,7 +60,7 @@ if __name__=='__main__':
   code_dir = os.path.dirname(os.path.realpath(__file__))
   parser.add_argument('--mesh_obj', type=str, default=None)
   parser.add_argument('--mesh_ply', type=str, default=None)
-  parser.add_argument('--dataset_dir', type=str, default='/mnt/SenseShift6D/test') 
+  parser.add_argument('--dataset_dir', type=str, default='/hdd/yghan/SenseShift6D/test') 
   parser.add_argument('--brightness', type=str, default='B50')
   parser.add_argument('--depth_shuffle', action='store_true')
   parser.add_argument('--sensor', type=str, default=None)
@@ -68,7 +72,7 @@ if __name__=='__main__':
   parser.add_argument('--debug', type=int, default=1)
   parser.add_argument('--debug_dir', type=str, default=f'{code_dir}/debug')
   parser.add_argument('--eval_output_path', type=str)
-  parser.add_argument('--bop_path', type=str, default='/mnt')
+  parser.add_argument('--bop_path', type=str, default='/hdd/yghan')
   parser.add_argument('--dataset_name', type=str, default='SenseShift6D')
   parser.add_argument('--test_folder', type=str, default='test')
   parser.add_argument('--det_json_path', type=str, default=None, help="Detection 결과 JSON 파일 경로")
@@ -80,12 +84,13 @@ if __name__=='__main__':
     "pringles": 1,
     "tincase": 2,
     "sandwich": 3,
-    "mouse": 4
+    "mouse": 4,
+    "duck": 5
   } 
   args.obj_id = OBJ_NAME_TO_ID[args.obj_name]
 
   sensor_list = [
-                'AE', 'AEG16', 'AEG48', 'AEG80', 'AEG112',
+                'AE',
                 'E9G16', 'E9G48', 'E9G80', 'E9G112',
                 'E39G16', 'E39G48', 'E39G80', 'E39G112',
                 'E156G16', 'E156G48', 'E156G80', 'E156G112',
@@ -97,7 +102,7 @@ if __name__=='__main__':
 
   if args.mesh_ply is None:
     mesh_obj_id = args.obj_id + 1  # 1부터 시작
-    mesh_ply_path = os.path.join('/mnt/SenseShift6D/models', f'obj_{mesh_obj_id:06d}.ply')
+    mesh_ply_path = os.path.join('/hdd/yghan/SenseShift6D/models', f'obj_{mesh_obj_id:06d}.ply')
     args.mesh_ply = mesh_ply_path
     print(f"[mesh_ply 자동 생성] obj_id + 1 → {mesh_obj_id:06d}")
   else:
@@ -105,7 +110,7 @@ if __name__=='__main__':
 
   if args.mesh_obj is None:
     mesh_obj_id = args.obj_id + 1  # 1부터 시작
-    mesh_obj_path = os.path.join('/mnt/SenseShift6D/models', f'obj_{mesh_obj_id:06d}.obj')
+    mesh_obj_path = os.path.join('/hdd/yghan/SenseShift6D/models', f'obj_{mesh_obj_id:06d}.obj')
     args.mesh_obj = mesh_obj_path
     print(f"[mesh_obj 자동 생성] obj_id + 1 → {mesh_obj_id:06d}")
   else:
@@ -120,7 +125,7 @@ if __name__=='__main__':
   set_seed(0)
 
   mesh = trimesh.load(args.mesh_obj)
-  mesh.vertices *= 0.001 
+  mesh.vertices *= 0.001 # 반드시 추가!! mm -> m 
 
   debug = args.debug
   debug_dir = args.debug_dir
@@ -133,10 +138,9 @@ if __name__=='__main__':
 
   scorer = ScorePredictor()
   refiner = PoseRefinePredictor()
-  refiner.cfg['use_normal'] = False 
-  refiner.cfg['use_light'] = False 
+  refiner.cfg['use_normal'] = False # 법선벡터 사용 X
+  refiner.cfg['use_light'] = False # 법선벡터 사용 X
   glctx = dr.RasterizeCudaContext()
-
 
   eval_output_path = args.eval_output_path
   brightness = args.brightness
@@ -198,9 +202,15 @@ if __name__=='__main__':
     os.makedirs(cvs_path, exist_ok=True)
     cvs_path = os.path.join(cvs_path, "{}_{}_{}_{}".format(dataset_name, obj_name, brightness, sensor))
 
-    json_base_dir = "/ssd/dywoo/FoundationPose/sam_mask"
-    json_filename = f"merged_ism_topscore_AE_{obj_name}_{brightness}_d0.json"
-    det_json_path = os.path.join(json_base_dir, json_filename)
+    # if sensor in ['AEG16', 'AEG48', 'AEG80', 'AEG112']:
+    #         continue
+
+    # 추가
+    # json_base_dir = "/ssd/dywoo/FoundationPose/sam_mask"
+    # json_filename = f"merged_ism_topscore_AE_{obj_name}_{brightness}_d0.json"
+    # det_json_path = os.path.join(json_base_dir, json_filename)
+    det_json_path = None
+
     
     print("SS6DReader 초기화 중...")  
     reader = SS6DReader(
@@ -210,7 +220,7 @@ if __name__=='__main__':
       sensor=sensor,
       depth_shuffle=args.depth_shuffle,
       obj_id=args.obj_id,
-      use_detection_mask = False, # False: GT mask, True: detected mask 
+      use_detection_mask = False,
       det_json_path = det_json_path
     )
     print("SS6DReader 초기화 완료.")
@@ -224,6 +234,7 @@ if __name__=='__main__':
     ADX_error=np.zeros(len(reader))
     AUC_ADX_error=np.zeros(len(reader))
     pose_list = [None] * len(reader)  
+    pose_score_list = []
 
     for i in range(len(reader)):
       print(f'프레임 i: {i}')
@@ -239,25 +250,27 @@ if __name__=='__main__':
       print(f"[{obj_name}] 이미지 ID: {int(reader.ids[i]):06d}")
       print(f"RGB: {reader.rgb_files[i]}")
       print(f"Depth: {reader.depth_files[i]}")
-      # print(f"Mask: {reader.mask_files[i]}")
+      print(f"Mask: {reader.mask_files[i]}")
       print(f"Intrinsic K: \n{K}")
 
+      # gt_mask = imageio.imread(reader.mask_files[i]).astype(bool)
+
+      # 기존에는 0번 이미지에서 Pose estimation 후 tracking 하는 과정이었는데,
+      # SS6D는 두 이미지 간 시간 차가 큰 편이라 tracking 없이 pose estimation 수행하도록 함 
       pose = est.register(K=K, rgb=color, depth=depth, ob_mask=mask, iteration=args.est_refine_iter)
+      pose_score = est.scores[0].item()
       R_predict, t_predict = pose[:3,:3], pose[:3,3]
       adx_error = Calculate_ADD_Error_BOP(r_GT, t_GT, R_predict, t_predict, vertices)
       pose_list[i] = pose
       print(f"[추적 완료] Pose:\n{pose}")
+
+      pose_score_list.append(pose_score)
 
       re_error = re(r_GT, R_predict)
       te_error = te(t_GT, t_predict)
       if np.isnan(adx_error): adx_error = 10000
       if np.isnan(re_error): re_error = 10000
       if np.isnan(te_error): te_error = 10000
-
-      if adx_error < obj_diameter*0.02:
-          AD2_passed[i] = 1
-          if sensor not in ae_list:
-              success_ad2_img_ids.add(f"{int(reader.ids[i]):06d}")
 
       if adx_error < obj_diameter*0.05:
           AD5_passed[i] = 1
@@ -281,7 +294,7 @@ if __name__=='__main__':
           if adx_error < obj_diameter*t:
               sum_correct = sum_correct + 1
       AUC_ADX_error[i] = sum_correct/100
-
+      
       ob_in_cam_path = os.path.join(debug_dir, 'ob_in_cam')
       os.makedirs(ob_in_cam_path, exist_ok=True)
       np.savetxt(f'{ob_in_cam_path}/{int(reader.ids[i]):06d}.txt', pose.reshape(4, 4))
@@ -301,22 +314,20 @@ if __name__=='__main__':
               obj_id=obj_id,
               scene_id_=[0]*len(reader), 
               sensor=sensor,
-              depth=0,  
+              depth=0,  # depth_shuffle 안 쓰면 그냥 0으로
               img_id_=[int(i) for i in reader.ids],
-              pose_=pose_list, 
-              scores=ADX_error.tolist(), 
+              pose_=pose_list,  # 각 프레임에서 추정한 4x4 pose
+              scores=ADX_error.tolist(),  # 각 프레임의 adx
+              pose_scores = pose_score_list
               )
 
 
     print(f"-----{sensor}-----")
-    AD2_passed_oracle = np.mean(AD2_passed)
     AD5_passed_oracle = np.mean(AD5_passed)
     if sensor not in ae_list:
-        AD2_sensor_mean.append(AD2_passed_oracle)
         AD5_sensor_mean.append(AD5_passed_oracle)
     ADX_error_mean= np.mean(ADX_error)
     AUC_ADX_error_mean = np.mean(AUC_ADX_error)
-    print('{}/{} 002'.format('ADD','ADD'), AD2_passed_oracle)
     print('{}/{} 005'.format('ADD','ADD'), AD5_passed_oracle)
     print('{}_error/{}'.format('ADD','ADD'), ADX_error_mean)
     print('AUC_{}/{}'.format('ADD','ADD'), AUC_ADX_error_mean)
@@ -327,7 +338,6 @@ if __name__=='__main__':
 
     f = open(path, "a")
     f.write('-----{}-----\n'.format(sensor))
-    f.write('{}/{} 002 {}\n'.format('ADD', 'ADD', str(AD2_passed_oracle)))
     f.write('{}/{} 005 {}\n'.format('ADD', 'ADD', str(AD5_passed_oracle)))
     f.write('{}_error/{} {}\n'.format('ADD', 'ADD', str(ADX_error_mean)))
     f.write('AUC_{}/{} {}\n'.format('ADD', 'ADD', str(AUC_ADX_error_mean)))
@@ -336,28 +346,21 @@ if __name__=='__main__':
     f.close()
     ####
 
-  success_ad2_img_ids = sorted(success_ad2_img_ids)
   success_ad5_img_ids = sorted(success_ad5_img_ids)
   print('----SUCCESS_IMG----')
-  print('{}'.format(str(success_ad2_img_ids)))
-  print('SUCCESS_AD2_IMG_NUM {}'.format(str(len(success_ad2_img_ids)/n_samples)))
   print('{}'.format(str(success_ad5_img_ids)))
   print('SUCCESS_AD5_IMG_NUM {}'.format(str(len(success_ad5_img_ids)/n_samples)))
   print('ADD_min_error {}'.format(str(np.mean(ADD_min_error))))
   print('RE_min_error {}'.format(str(np.mean(RE_min_error))))
   print('TE_min_error {}'.format(str(np.mean(TE_min_error))))
-  print('ADD_sensor_mean 002 {}'.format(str(np.mean(AD2_sensor_mean))))
   print('ADD_sensor_mean 005 {}'.format(str(np.mean(AD5_sensor_mean))))
 
   f = open(path, "a")
   f.write('----SUCCESS_IMG----\n')
-  f.write('{}\n'.format(str(success_ad2_img_ids)))
-  f.write('SUCCESS_AD2_IMG_NUM {}\n'.format(str(len(success_ad2_img_ids)/n_samples)))
   f.write('{}\n'.format(str(success_ad5_img_ids)))
   f.write('SUCCESS_AD5_IMG_NUM {}\n'.format(str(len(success_ad5_img_ids)/n_samples)))
   f.write('ADD_min_error {}\n'.format(str(np.mean(ADD_min_error))))
   f.write('RE_min_error {}\n'.format(str(np.mean(RE_min_error))))
   f.write('TE_min_error {}\n'.format(str(np.mean(TE_min_error))))
-  f.write('ADD_sensor_mean 002 {}'.format(str(np.mean(AD2_sensor_mean))))
   f.write('ADD_sensor_mean 005 {}'.format(str(np.mean(AD5_sensor_mean))))
   f.close()

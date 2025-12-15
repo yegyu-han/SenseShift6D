@@ -201,13 +201,21 @@ Humantech_symmetry_obj = ['obj01']
 SenseShift6D_obj_name_obj_id = {# edit
     'spray' : 1,
     'pringles' : 2,
-    'tincase': 3
+    'tincase': 3,
+    'sandwich': 4,
+    'mouse': 5,
+    'duck': 6
 }
 
 SenseShift6D_symmetry_obj = [] # edit
 
 
 def get_obj_info(dataset_name):# edit
-    if dataset_name not in ['SenseShift6D', 'lmo', 'ycbv', 'tless', 'tudl', 'hb', 'icbin', 'itodd', 'Humantech']:
+    lower_dataset_name = dataset_name.lower()
+    if lower_dataset_name == 'senseshift6d':
+        canonical_name = 'SenseShift6D'
+    
+    if lower_dataset_name not in ['senseshift6d', 'lmo', 'ycbv', 'tless', 'tudl', 'hb', 'icbin', 'itodd', 'humantech']:
         raise AssertionError("dataset name unknow")
-    return eval("{}_obj_name_obj_id".format(dataset_name)), eval("{}_symmetry_obj".format(dataset_name))
+        
+    return eval("{}_obj_name_obj_id".format(canonical_name)), eval("{}_symmetry_obj".format(canonical_name))

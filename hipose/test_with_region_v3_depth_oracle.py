@@ -177,18 +177,18 @@ def main(configs):
 
     vertices = inout.load_ply(mesh_path)["pts"]
 
-    sensor_list = ['AE',
+    sensor_list = ['AE', 'AEG16', 'AEG48', 'AEG80', 'AEG112',
                 'E9G16', 'E9G48', 'E9G80', 'E9G112',
                 'E39G16', 'E39G48', 'E39G80', 'E39G112',
                 'E156G16', 'E156G48', 'E156G80', 'E156G112',
                 'E625G16', 'E625G48', 'E625G80', 'E625G112',
-                'E2500G16', 'E2500G48', 'E2500G80', 'E2500G112'
-                ]
+                'E2500G16', 'E2500G48', 'E2500G80', 'E2500G112']
 
     ae_list = ['AE', 'AEG16', 'AEG48', 'AEG80', 'AEG112']
 
     depth_preset_list = ['0','1', '2', '3'] 
 
+    # path = os.path.join(eval_output_path, "ADD_result", config_file_name)
     setting = configs['checkpoint_file'].split('/')[-2].split('_')[-2]
     path = eval_output_path + config_file_name
     print("path: ", path)
@@ -198,13 +198,14 @@ def main(configs):
     if os.path.exists(path):
         os.remove(path)
 
+    # success_img_ids = set()
     success_ad5_img_ids = set()
     AD5_sensor_mean = []
     sample_path = os.path.join(bop_path, dataset_name, test_folder, brightness, str(obj_id).zfill(6), 'rgb/AE')
     n_samples = len(glob.glob(os.path.join(sample_path, '*.png')))
     ADD_min_error = np.ones(n_samples) * 10000
-    ADD_min_global = np.full(n_samples, np.inf)
-    preset_min_errors = {dp: np.full(n_samples, np.inf) for dp in depth_preset_list}
+    ADD_min_global = np.full(n_samples, np.inf) # 수정, 전체‑oracle (depth + sensor 모두 포함) – 이미지별 최소값
+    preset_min_errors = {dp: np.full(n_samples, np.inf) for dp in depth_preset_list} # 수정, 프리셋마다 이미지별 최소값
     RE_min_error = np.ones(n_samples) * 10000
     TE_min_error = np.ones(n_samples) * 10000
     best_rgb = np.full(n_samples, '', dtype=object)
@@ -218,17 +219,17 @@ def main(configs):
     per_depth_non_ae = {dp: {'add':[], 'r005':[]} for dp in depth_preset_list}
     per_depth_ae = {dp: {'add':[], 'r005':[]} for dp in depth_preset_list}
 
-    per_depth_auc_non_ae = {dp: [float('inf')] for dp in depth_preset_list}  
-    per_depth_auc_ae = {dp: [float('inf')] for dp in depth_preset_list}      
-    global_auc_non_ae_max = -np.inf 
+    per_depth_auc_non_ae = {dp: [float('inf')] for dp in depth_preset_list}  # non-AE AUC 저장
+    per_depth_auc_ae = {dp: [float('inf')] for dp in depth_preset_list}      # AE AUC 저장
+    global_auc_non_ae_max = -np.inf  # non-AE 글로벌 AUC의 최댓값 추적
     global_auc_ae_max = -np.inf   
     global_auc_all_max = -np.inf
 
-    for d_preset in depth_preset_list: 
+    for d_preset in depth_preset_list: # 수정
         print("d_preset: ", d_preset)
         for sensor in sensor_list:
 
-            cvs_path = os.path.join(eval_output_path, 'rebuttal', brightness, config_file_name)
+            cvs_path = os.path.join(eval_output_path, brightness, config_file_name)
             if not os.path.exists(cvs_path):
                 os.makedirs(cvs_path)
             cvs_path = os.path.join(cvs_path, "{}_{}_{}_{}_{}".format(dataset_name, obj_name, brightness, d_preset, sensor))
@@ -288,6 +289,7 @@ def main(configs):
             net.load_state_dict(checkpoint['model_state_dict'])
 
             net.eval()
+            #test with test data
             AD5_passed=np.zeros(len(test_loader.dataset))
             RE_error=np.zeros(len(test_loader.dataset))
             TE_error=np.zeros(len(test_loader.dataset))
@@ -302,6 +304,7 @@ def main(configs):
             for bit in range(region_bit + 1, 17):
                 bit2class_id_center_and_region[bit] = generate_new_corres_dict_and_region(dict_class_id_3D_points, 16, bit)
 
+            # complete bit2class_id_center_and_region so that all regions share the same shape, default: 32
             region_max_points = pow(2, 15 - region_bit)
             for bit in range(region_bit + 1, 17):
                 for center_and_region in bit2class_id_center_and_region[bit].values():
@@ -325,7 +328,7 @@ def main(configs):
                 scene_ids.append(scene_id)
 
             for batch_idx, (inputs, targets, rgb_fns) in enumerate(tqdm(test_loader)):
-                # do the prediction and get the preicted binary code
+                # do the prediction and get the predicted binary code
                 if not inputs: # no valid detected bbox
                     R_ = np.zeros((3,3))
                     R_[0,0] = 1
@@ -411,10 +414,12 @@ def main(configs):
                         best_rgb[batch_idx] = rgb_fn
                         best_depth[batch_idx] = d_preset
 
+                    # 수정, preset별 오라클 업뎃
                     if adx_error < preset_min_errors[d_preset][batch_idx]:
                         if sensor not in ae_list:
                             preset_min_errors[d_preset][batch_idx] = adx_error
                     
+                    # 수정, 전체 오라클 업뎃
                     if adx_error < ADD_min_global[batch_idx]:
                         if sensor not in ae_list:
                             ADD_min_global[batch_idx] = adx_error
@@ -428,10 +433,10 @@ def main(configs):
 
                     if sensor not in ae_list:
                         if AUC_ADX_error[batch_idx] < per_depth_auc_non_ae[d_preset]:
-                            per_depth_auc_non_ae[d_preset] = AUC_ADX_error[batch_idx]  
+                            per_depth_auc_non_ae[d_preset] = AUC_ADX_error[batch_idx]  # 최소값 갱신
                     else:
                         if AUC_ADX_error[batch_idx] < per_depth_auc_ae[d_preset]:
-                            per_depth_auc_ae[d_preset] = AUC_ADX_error[batch_idx] 
+                            per_depth_auc_ae[d_preset] = AUC_ADX_error[batch_idx]  # 최소값 갱신
                     # Global AUC 계산
                     if sensor not in ae_list:
                         global_auc_non_ae_max = max(global_auc_non_ae_max, AUC_ADX_error[batch_idx])
@@ -476,8 +481,36 @@ def main(configs):
 
             ####save results to file
             if has_gt:
+                # path = os.path.join(eval_output_path, "ADD_result/")
+                # if not os.path.exists(path):
+                #     os.makedirs(path)
+                # path = path + "{}_{}".format(dataset_name, obj_name) + ".txt" 
+                # #path = path + dataset_name + obj_name  + "ignorebit_" + str(configs['ignore_bit']) + ".txt"
+                # #path = path + dataset_name + obj_name + "radix" + "_" + str(divide_number_each_itration)+"_"+str(number_of_itration) + ".txt"
+                # print('save ADD results to', path)
+                # print(path)
+                # f = open(path, "w")
+                # f.write('{}/{} '.format(main_metric_name,main_metric_name))
+                # f.write(str(ADX_passed.item()))
+                # f.write('\n')
+                # f.write('AUC_{}/{} '.format(main_metric_name,main_metric_name))
+                # f.write(str(AUC_ADX_error.item()))
+                # f.write('\n')
+                # f.write('AUC_posecnn_{}/{} '.format(main_metric_name,main_metric_name))
+                # f.write(str(AUC_ADX_error_posecnn.item()))
+                # f.write('\n')
+                # f.write('AUC_{}/{} '.format(supp_metric_name,supp_metric_name))
+                # f.write(str(AUC_ADY_error.item()))
+                # f.write('\n')
+                # f.write('AUC_posecnn_{}/{} '.format(main_metric_name,main_metric_name))
+                # f.write(str(AUC_ADY_error_posecnn.item()))
+                # f.write('\n')
+                # f.close()
+
                 f = open(path, "a")
+                # 수정
                 f.write(f"--- Depth {d_preset} | Sensor {sensor} ---\n")
+                # 수정
                 f.write(f"Preset_ADX_error_mean: {np.mean(preset_min_errors[d_preset]):.4f}\n")
                 f.write(f'ADD_min_error: {str(np.mean(ADD_min_error))}\n')
                 f.write('{}/{} 005 {}\n'.format(main_metric_name, main_metric_name, str(AD5_passed)))
@@ -510,6 +543,7 @@ def main(configs):
     print('ADD_sensor_mean 005 {}'.format(str(np.mean(AD5_sensor_mean))))
     print('{}'.format(str(best_rgb)))
     print('{}'.format(str(best_depth)))
+    # print('USE_ICP {}'.format(str(configs['use_icp'])))
     f = open(path, "a")
     f.write('----SUCCESS_IMG----\n')
     f.write('{}\n'.format(str(success_ad5_img_ids)))
@@ -520,6 +554,8 @@ def main(configs):
     f.write('\nADD_sensor_mean 005 {}\n'.format(str(np.mean(AD5_sensor_mean))))
     f.write('{}\n'.format(str(best_rgb)))
     f.write('{}\n'.format(str(best_depth)))
+    # f.write('USE_ICP {}\n'.format(str(configs['use_icp'])))
+    # 수정
     f.write("\n--- Global Oracle (depth + sensor, AE 제외) ---\n")
     f.write(f"mean_ADD_global = {global_oracle_add:.4f}\n\n")
 
