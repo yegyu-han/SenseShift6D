@@ -1,10 +1,16 @@
+"""
+This code is a modified version of the original implementation from:
+https://github.com/shanice-l/gdrnpp_bop2022
+"""
+
 # 실험1) PBR + lv3 AE (general setting)
 # 실험2) PBR + lv3 AE + aug (aug_prob = 0.8)
 # 실험3) PBR + ALL (foundation setting)
 
+
 _base_ = ["../../../_base_/gdrn_base.py"]
 
-OUTPUT_DIR = "output/gdrn/SS6D/AEGx/exp3/sandwich"
+OUTPUT_DIR = "output/gdrn/SS6D/ICLR_inference/exp3/sandwich"
 INPUT = dict(
     DZI_PAD_SCALE=1.5,
     TRUNCATE_FG=False,

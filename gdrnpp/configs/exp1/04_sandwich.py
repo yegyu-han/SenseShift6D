@@ -1,6 +1,12 @@
+"""
+This code is a modified version of the original implementation from:
+https://github.com/shanice-l/gdrnpp_bop2022
+"""
+
 # 실험1) PBR + lv3 AE (general setting)
 # 실험2) PBR + lv3 AE + aug (aug_prob = 0.8)
 # 실험3) PBR + ALL (foundation setting)
+
 
 _base_ = ["../../../_base_/gdrn_base.py"]
 

@@ -1,3 +1,8 @@
+"""
+This code is a modified version of the original implementation from:
+https://github.com/shanice-l/gdrnpp_bop2022
+"""
+
 # encoding: utf-8
 """This file includes necessary params, info."""
 import os
@@ -57,6 +62,7 @@ diameters = (
             164.41491007818098,
             106.26554674838228,
             136.78783704912132,
+
         ]
     )
     / 1000.0

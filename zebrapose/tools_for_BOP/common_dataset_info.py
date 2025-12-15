@@ -194,7 +194,9 @@ itodd_symmetry_obj = ['obj02', 'obj03', 'obj04', 'obj05', 'obj07', 'obj08', 'obj
 SENSESHIFT6D_obj_name_obj_id = {
     'spray': 1,
     'pringles': 2,
-    'tincase': 3
+    'tincase': 3,
+    'sandwich': 4,
+    'mouse': 5
 }
 
 
