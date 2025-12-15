@@ -30,7 +30,7 @@ After extraction, you will have a structured dataset under SenseShift6D/train/ a
 
 ## 📁 Final Directory Structure
 After extraction, your SenseShift6D/ directory should be structured as follows:
--->
+
 ## 📦 Dataset Download
 Download the SenseShfit6D from our [Hugging Face repository 🤗](https://huggingface.co/datasets/Yegyu/SenseShift6D)
 
@@ -69,6 +69,8 @@ SenseShift6D/
 
 ```
 ___
+
+-->
 
 ## ⚠️ Requirements for Baseline Models
 
